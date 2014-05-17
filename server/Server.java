@@ -42,6 +42,47 @@ public class Server
 		logger.info("New client position: id: " + id + ", latitude: " + latitude + ", longitude: " + longitude); 
 	}
 
+	public String getLocation(String message)
+	{
+		int id;
+		float latitude, longitude;
+		Scanner sc = new Scanner(message);
+		StringBuffer sbuf = new StringBuffer();
+
+		sc.nextInt();
+		id = sc.nextInt();
+
+		sbuf.append("2 " + id + " ");
+
+		Connection c = null;
+		Statement stmt = null;
+		try {
+			Class.forName("org.sqlite.JDBC");
+			c = DriverManager.getConnection("jdbc:sqlite:test.db");
+			stmt = c.createStatement();
+
+			String sql = "SELECT latitude, longitude FROM client " +
+				     "WHERE user_id = " + id + ";";
+
+			ResultSet rs = stmt.executeQuery(sql);
+			latitude = rs.getFloat("latitude");
+			longitude = rs.getFloat("longitude");
+			System.out.println(latitude + " " + longitude);
+
+			sbuf.append(latitude + " ");
+			sbuf.append(longitude + " ");
+			sbuf.append("\n");
+
+			rs.close();
+			stmt.close();
+			c.close();
+		} catch (Exception e) {
+			logger.severe("Database error: " + e.getMessage());
+		}
+
+		return sbuf.toString();
+	}
+
 	public static void main( String args[] )
 	{
 		Server server = new Server();
@@ -73,6 +114,7 @@ public class Server
 
 		while(true) {
 			Socket incomingRequest = null;
+			String response = null;
 
 			/* Wait for request. */
 			try {
@@ -101,6 +143,7 @@ public class Server
 				switch (message) {
 					case '1': server.updateLocation(request);
 						  break;
+					case '2': response = server.getLocation(request);
 				}
 
 
@@ -108,23 +151,25 @@ public class Server
 				server.logger.severe("Cannot read input stream: IOException: " + e.getMessage());
 			}
 
-			/* Respond to client. */
-			OutputStream responseStream = null;
-			try {
-				responseStream = incomingRequest.getOutputStream();
-			} catch (IOException e) {
-				server.logger.severe("cannot get output stream: IOException: " + e.getMessage());
-			}
+			if (response != null) {
+				/* Respond to client. */
+				OutputStream responseStream = null;
+				try {
+					responseStream = incomingRequest.getOutputStream();
+				} catch (IOException e) {
+					server.logger.severe("cannot get output stream: IOException: " + e.getMessage());
+				}
 
-			PrintStream writer = new PrintStream(responseStream);
-			writer.print("Hello");
+				PrintStream writer = new PrintStream(responseStream);
+				writer.print(response);
 
-			try {
-				responseStream.close();
-				incomingRequest.close();
-				server.logger.info("Closed client stream.");
-			} catch (IOException e) {
-				server.logger.severe("Error finishing request: IOException: " + e.getMessage());
+				try {
+					responseStream.close();
+					incomingRequest.close();
+					server.logger.info("Closed client stream.");
+				} catch (IOException e) {
+					server.logger.severe("Error finishing request: IOException: " + e.getMessage());
+				}
 			}
 		}
 	}
