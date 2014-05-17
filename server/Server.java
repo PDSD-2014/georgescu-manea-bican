@@ -83,6 +83,32 @@ public class Server
 		return sbuf.toString();
 	}
 
+	public void logoutUser(String message)
+	{
+		int id;
+		Scanner sc = new Scanner(message);
+
+		sc.nextInt();
+		id = sc.nextInt();
+
+		Connection c = null;
+		Statement stmt = null;
+		try {
+			Class.forName("org.sqlite.JDBC");
+			c = DriverManager.getConnection("jdbc:sqlite:test.db");
+			stmt = c.createStatement();
+
+			String sql = "UPDATE client SET online = 0 where user_id = " + id + ";";
+
+			stmt.executeUpdate(sql);
+
+			stmt.close();
+			c.close();
+		} catch (Exception e) {
+			logger.severe("Database error: " + e.getMessage());
+		}
+	}
+
 	public String authentifyUser(String message)
 	{
 		String email, password, dbpassword = null;
@@ -321,6 +347,8 @@ public class Server
 					case '1': server.updateLocation(request);
 						  break;
 					case '2': response = server.getLocation(request);
+						  break;
+					case '3': server.logoutUser(request);
 						  break;
 					case '4': response = server.authentifyUser(request);
 						  break;
