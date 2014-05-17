@@ -139,6 +139,67 @@ public class Server
 		return sbuf.toString();
 	}
 
+	public String registerNewUser(String message)
+	{
+		String email, password, dbemail;
+		String name = null, surname = null;
+		int id = -1;
+		Scanner sc = new Scanner(message);
+		StringBuffer sbuf = new StringBuffer();
+		boolean out = false;
+
+		sc.nextInt();
+		surname = sc.next();
+		name = sc.next();
+		email = sc.next();
+		password = sc.next();
+
+		sbuf.append("5 ");
+
+		Connection c = null;
+		Statement stmt = null;
+		try {
+			Class.forName("org.sqlite.JDBC");
+			c = DriverManager.getConnection("jdbc:sqlite:test.db");
+			stmt = c.createStatement();
+
+			String sql = "SELECT user_id,email FROM client;";
+
+			ResultSet rs = stmt.executeQuery(sql);
+
+			while (rs.next()) {
+				id = rs.getInt("user_id");
+				dbemail = rs.getString("email");
+				if (dbemail.equals(email)) { /* User already exists. */
+					out = true;
+					sbuf.append("1\n");
+				}
+			}
+
+			if (out == false) {
+				id++;
+				sql = "INSERT INTO client VALUES " +
+					     "(" + id + ", " + "'" + email + "'" + ", " +
+					     "'" + password + "'" + ", " + "'" + name + "'" + ", " +
+					     "'" + surname + "'," + " -1, -1, 0);";
+
+				stmt.executeUpdate(sql);
+
+				sbuf.append("0 " + id + "\n");
+
+				logger.info("Added user: " + email);
+			}
+
+			rs.close();
+			stmt.close();
+			c.close();
+		} catch (Exception e) {
+			logger.severe("Database error: " + e.getMessage());
+		}
+
+		return sbuf.toString();
+	}
+
 	public static void main( String args[] )
 	{
 		Server server = new Server();
@@ -202,6 +263,8 @@ public class Server
 					case '2': response = server.getLocation(request);
 						  break;
 					case '4': response = server.authentifyUser(request);
+						  break;
+					case '5': response = server.registerNewUser(request);
 						  break;
 				}
 
