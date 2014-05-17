@@ -44,6 +44,43 @@ public class Server
 			}
 
 			logger.info("New request from: " + incomingRequest.getInetAddress());
+
+			/* Read client request. */
+			InputStream requestStream = null;
+			try {
+				requestStream = incomingRequest.getInputStream();
+			} catch (IOException e) {
+				logger.severe("Cannot get input stream: IOException: " + e.getMessage());
+			}
+
+			BufferedReader requestReader = new BufferedReader(new InputStreamReader(requestStream));
+			try {
+				String request = requestReader.readLine();
+				char message = request.charAt(0);
+				logger.info("Got message type " + message);
+			} catch (IOException e) {
+				logger.severe("Cannot read input stream: IOException: " + e.getMessage());
+			}
+
+			/* Respond to client. */
+			OutputStream responseStream = null;
+			try {
+				responseStream = incomingRequest.getOutputStream();
+			} catch (IOException e) {
+				logger.severe("cannot get output stream: IOException: " + e.getMessage());
+			}
+
+			PrintStream writer = new PrintStream(responseStream);
+			writer.print("Hello");
+			logger.severe("sent");
+
+			try {
+				responseStream.close();
+				incomingRequest.close();
+				logger.info("Closed client stream.");
+			} catch (IOException e) {
+				logger.severe("Error finishing request: IOException: " + e.getMessage());
+			}
 		}
 
 
