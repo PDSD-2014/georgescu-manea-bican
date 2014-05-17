@@ -200,6 +200,52 @@ public class Server
 		return sbuf.toString();
 	}
 
+	public String listClients(String message)
+	{
+		String email, password, dbemail;
+		String name, surname;
+		int id, user_id;
+		Scanner sc = new Scanner(message);
+		StringBuffer sbuf = new StringBuffer();
+		boolean out = false;
+
+		sc.nextInt();
+		id = sc.nextInt();
+
+		sbuf.append("6");
+
+		Connection c = null;
+		Statement stmt = null;
+		try {
+			Class.forName("org.sqlite.JDBC");
+			c = DriverManager.getConnection("jdbc:sqlite:test.db");
+			stmt = c.createStatement();
+
+			String sql = "SELECT user_id,surname,name FROM client;";
+
+			ResultSet rs = stmt.executeQuery(sql);
+
+			while (rs.next()) {
+				user_id = rs.getInt("user_id");
+				surname = rs.getString("surname");
+				name = rs.getString("name");
+
+				if (user_id != id)
+					sbuf.append(" " + user_id + " " + surname + " " + name);
+			}
+
+			sbuf.append("\n");
+
+			rs.close();
+			stmt.close();
+			c.close();
+		} catch (Exception e) {
+			logger.severe("Database error: " + e.getMessage());
+		}
+
+		return sbuf.toString();
+	}
+
 	public static void main( String args[] )
 	{
 		Server server = new Server();
@@ -265,6 +311,8 @@ public class Server
 					case '4': response = server.authentifyUser(request);
 						  break;
 					case '5': response = server.registerNewUser(request);
+						  break;
+					case '6': response = server.listClients(request);
 						  break;
 				}
 
