@@ -134,6 +134,20 @@ public class Server
 			} else {
 				sbuf.append("0 " + id + " " + surname + " " + name + "\n");
 				logger.info("Authentified user: " + email);
+				try {
+					Class.forName("org.sqlite.JDBC");
+					c = DriverManager.getConnection("jdbc:sqlite:test.db");
+					stmt = c.createStatement();
+
+					String sql = "UPDATE client SET online = 1 where user_id = " + id + ";";
+
+					stmt.executeUpdate(sql);
+
+					stmt.close();
+					c.close();
+				} catch (Exception e) {
+					logger.severe("Database error: " + e.getMessage());
+				}
 			}
 
 		return sbuf.toString();
