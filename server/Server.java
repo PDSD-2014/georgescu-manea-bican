@@ -83,6 +83,62 @@ public class Server
 		return sbuf.toString();
 	}
 
+	public String authentifyUser(String message)
+	{
+		String email, password, dbpassword = null;
+		String name = null, surname = null;
+		int id = -1;
+		Scanner sc = new Scanner(message);
+		StringBuffer sbuf = new StringBuffer();
+
+		sc.nextInt();
+		email = sc.next();
+		password = sc.next();
+
+		sbuf.append("4 ");
+
+		Connection c = null;
+		Statement stmt = null;
+		try {
+			Class.forName("org.sqlite.JDBC");
+			c = DriverManager.getConnection("jdbc:sqlite:test.db");
+			stmt = c.createStatement();
+
+			String sql = "SELECT user_id, name, surname, password FROM client " +
+				     "WHERE email = '" + email + "';";
+
+			ResultSet rs = stmt.executeQuery(sql);
+
+			while (rs.next()) {
+				id = rs.getInt("user_id");
+				surname = rs.getString("surname");
+				name = rs.getString("name");
+				dbpassword = rs.getString("password");
+			}
+
+			rs.close();
+			stmt.close();
+			c.close();
+		} catch (Exception e) {
+			logger.severe("Database error: " + e.getMessage());
+		}
+
+		/* We have no dbpassword => no such user in the database. */
+		if (dbpassword == null) {
+			sbuf.append("1\n");
+			logger.info("No such user: " + email);
+		} else
+			if (!dbpassword.equals(password)) { /* Wrong password. */
+				sbuf.append("2\n");
+				logger.info("Wrong password: " + email);
+			} else {
+				sbuf.append("0 " + id + " " + surname + " " + name + "\n");
+				logger.info("Authentified user: " + email);
+			}
+
+		return sbuf.toString();
+	}
+
 	public static void main( String args[] )
 	{
 		Server server = new Server();
@@ -144,6 +200,9 @@ public class Server
 					case '1': server.updateLocation(request);
 						  break;
 					case '2': response = server.getLocation(request);
+						  break;
+					case '4': response = server.authentifyUser(request);
+						  break;
 				}
 
 
