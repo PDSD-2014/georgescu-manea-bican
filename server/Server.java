@@ -1,6 +1,7 @@
 import java.sql.*;
 import java.io.*;
 import java.util.logging.*;
+import java.net.*;
 
 public class Server
 {
@@ -24,14 +25,36 @@ public class Server
 
 		logger.info("line");
 
-		Connection c = null;
+		/* Create server socket. */
+		ServerSocket in = null;
 		try {
-			Class.forName("org.sqlite.JDBC");
-			c = DriverManager.getConnection("jdbc:sqlite:test.db");
-		} catch ( Exception e ) {
-			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-			System.exit(0);
+			in = new ServerSocket(9000);
+		} catch (IOException e) {
+			logger.severe("Cannot create server socket: IOException: " + e.getMessage());
 		}
-		System.out.println("Opened database successfully");
+
+		while(true) {
+			Socket incomingRequest = null;
+
+			/* Wait for request. */
+			try {
+				incomingRequest = in.accept();
+			} catch (IOException e) {
+				logger.severe("Error when accepting connection: IOException: " + e.getMessage());
+			}
+
+			logger.info("New request from: " + incomingRequest.getInetAddress());
+		}
+
+
+//		Connection c = null;
+//		try {
+//			Class.forName("org.sqlite.JDBC");
+//			c = DriverManager.getConnection("jdbc:sqlite:test.db");
+//		} catch ( Exception e ) {
+//			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+//			System.exit(0);
+//		}
+//		System.out.println("Opened database successfully");
 	}
 }
