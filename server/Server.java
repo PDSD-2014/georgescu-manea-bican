@@ -8,7 +8,7 @@ public class Server
 {
 	Logger logger;
 
-	public void getLocation(String message)
+	public void updateLocation(String message)
 	{
 		int id;
 		float latitude, longitude;
@@ -99,7 +99,7 @@ public class Server
 				char message = request.charAt(0);
 
 				switch (message) {
-					case '1': server.getLocation(request);
+					case '1': server.updateLocation(request);
 						  break;
 				}
 
