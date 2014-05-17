@@ -6,7 +6,9 @@ import java.util.*;
 
 public class Server
 {
-	public static void getLocation(String message)
+	Logger logger;
+
+	public void getLocation(String message)
 	{
 		int id;
 		float latitude, longitude;
@@ -15,23 +17,42 @@ public class Server
 
 		sc.nextInt();
 		id = sc.nextInt();
-		System.out.println("id: " + id);
 		latitude = sc.nextFloat();
-		System.out.println("latitude: " + latitude);
 		longitude = sc.nextFloat();
-		System.out.println("longitude: " + longitude);
+
+		Connection c = null;
+		Statement stmt = null;
+		try {
+			Class.forName("org.sqlite.JDBC");
+			c = DriverManager.getConnection("jdbc:sqlite:test.db");
+			stmt = c.createStatement();
+
+			String sql = "UPDATE client SET " +
+				     "latitude = " + latitude + ", " +
+				     "longitude = " + longitude + " " +
+				     "WHERE user_id = " + id + ";";
+
+			stmt.executeUpdate(sql);
+			stmt.close();
+			c.close();
+		} catch (Exception e) {
+			logger.severe("Database error: " + e.getMessage());
+		}
+
+		logger.info("New client position: id: " + id + ", latitude: " + latitude + ", longitude: " + longitude); 
 	}
 
 	public static void main( String args[] )
 	{
-		/* Open log file. */
+		Server server = new Server();
 
-		Logger logger = Logger.getLogger("Log");
+		/* Open log file. */
+		server.logger = Logger.getLogger("Log");
 		FileHandler fh;
 
 		try {
 			fh = new FileHandler("out.log");
-			logger.addHandler(fh);
+			server.logger.addHandler(fh);
 			SimpleFormatter formatter = new SimpleFormatter();
 			fh.setFormatter(formatter);
 		} catch (SecurityException e) {
@@ -40,14 +61,14 @@ public class Server
 			System.err.println("IOException: " + e.getMessage());
 		}
 
-		logger.info("line");
+		server.logger.info("line");
 
 		/* Create server socket. */
 		ServerSocket in = null;
 		try {
 			in = new ServerSocket(9000);
 		} catch (IOException e) {
-			logger.severe("Cannot create server socket: IOException: " + e.getMessage());
+			server.logger.severe("Cannot create server socket: IOException: " + e.getMessage());
 		}
 
 		while(true) {
@@ -57,34 +78,34 @@ public class Server
 			try {
 				incomingRequest = in.accept();
 			} catch (IOException e) {
-				logger.severe("Error when accepting connection: IOException: " + e.getMessage());
+				server.logger.severe("Error when accepting connection: IOException: " + e.getMessage());
 			}
 
-			logger.info("New request from: " + incomingRequest.getInetAddress());
+			server.logger.info("New request from: " + incomingRequest.getInetAddress());
 
 			/* Read client request. */
 			InputStream requestStream = null;
 			try {
 				requestStream = incomingRequest.getInputStream();
 			} catch (IOException e) {
-				logger.severe("Cannot get input stream: IOException: " + e.getMessage());
+				server.logger.severe("Cannot get input stream: IOException: " + e.getMessage());
 			}
 
 			BufferedReader requestReader = new BufferedReader(new InputStreamReader(requestStream));
 			try {
 				String request = requestReader.readLine();
-				logger.info("Got request: " + request);
+				server.logger.info("Got request: " + request);
 
 				char message = request.charAt(0);
 
 				switch (message) {
-					case '1': getLocation(request);
+					case '1': server.getLocation(request);
 						  break;
 				}
 
 
 			} catch (IOException e) {
-				logger.severe("Cannot read input stream: IOException: " + e.getMessage());
+				server.logger.severe("Cannot read input stream: IOException: " + e.getMessage());
 			}
 
 			/* Respond to client. */
@@ -92,7 +113,7 @@ public class Server
 			try {
 				responseStream = incomingRequest.getOutputStream();
 			} catch (IOException e) {
-				logger.severe("cannot get output stream: IOException: " + e.getMessage());
+				server.logger.severe("cannot get output stream: IOException: " + e.getMessage());
 			}
 
 			PrintStream writer = new PrintStream(responseStream);
@@ -101,21 +122,10 @@ public class Server
 			try {
 				responseStream.close();
 				incomingRequest.close();
-				logger.info("Closed client stream.");
+				server.logger.info("Closed client stream.");
 			} catch (IOException e) {
-				logger.severe("Error finishing request: IOException: " + e.getMessage());
+				server.logger.severe("Error finishing request: IOException: " + e.getMessage());
 			}
 		}
-
-
-//		Connection c = null;
-//		try {
-//			Class.forName("org.sqlite.JDBC");
-//			c = DriverManager.getConnection("jdbc:sqlite:test.db");
-//		} catch ( Exception e ) {
-//			System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-//			System.exit(0);
-//		}
-//		System.out.println("Opened database successfully");
 	}
 }
