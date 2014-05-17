@@ -1,19 +1,28 @@
 import java.sql.*;
 import java.io.*;
+import java.util.logging.*;
 
 public class Server
 {
 	public static void main( String args[] )
 	{
 		/* Open log file. */
-		FileWriter fw;
+
+		Logger logger = Logger.getLogger("Log");
+		FileHandler fh;
+
 		try {
-			fw = new FileWriter("out.log", true);
-			fw.write("line\n");
-			fw.close();
-		} catch(IOException ioe) {
-			System.err.println("IOException: " + ioe.getMessage());
+			fh = new FileHandler("out.log");
+			logger.addHandler(fh);
+			SimpleFormatter formatter = new SimpleFormatter();
+			fh.setFormatter(formatter);
+		} catch (SecurityException e) {
+			System.err.println("SecurityException: " + e.getMessage());
+		} catch (IOException e) {
+			System.err.println("IOException: " + e.getMessage());
 		}
+
+		logger.info("line");
 
 		Connection c = null;
 		try {
@@ -24,6 +33,5 @@ public class Server
 			System.exit(0);
 		}
 		System.out.println("Opened database successfully");
-
 	}
 }
