@@ -2,9 +2,26 @@ import java.sql.*;
 import java.io.*;
 import java.util.logging.*;
 import java.net.*;
+import java.util.*;
 
 public class Server
 {
+	public static void getLocation(String message)
+	{
+		int id;
+		float latitude, longitude;
+
+		Scanner sc = new Scanner(message);
+
+		sc.nextInt();
+		id = sc.nextInt();
+		System.out.println("id: " + id);
+		latitude = sc.nextFloat();
+		System.out.println("latitude: " + latitude);
+		longitude = sc.nextFloat();
+		System.out.println("longitude: " + longitude);
+	}
+
 	public static void main( String args[] )
 	{
 		/* Open log file. */
@@ -56,8 +73,16 @@ public class Server
 			BufferedReader requestReader = new BufferedReader(new InputStreamReader(requestStream));
 			try {
 				String request = requestReader.readLine();
+				logger.info("Got request: " + request);
+
 				char message = request.charAt(0);
-				logger.info("Got message type " + message);
+
+				switch (message) {
+					case '1': getLocation(request);
+						  break;
+				}
+
+
 			} catch (IOException e) {
 				logger.severe("Cannot read input stream: IOException: " + e.getMessage());
 			}
@@ -72,7 +97,6 @@ public class Server
 
 			PrintStream writer = new PrintStream(responseStream);
 			writer.print("Hello");
-			logger.severe("sent");
 
 			try {
 				responseStream.close();
