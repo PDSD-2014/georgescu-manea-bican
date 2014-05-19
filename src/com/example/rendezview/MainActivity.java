@@ -113,7 +113,7 @@ public class MainActivity extends Activity {
 	}
 
 	public void locateUnlocateButtonHandler(View v) {
-		FriendInfo friendInfo = (FriendInfo)v.getTag();
+		UserInfo friendInfo = (UserInfo)v.getTag();
 		
 		if (friendInfo.button != null) {
 			if (friendInfo.getLocated() == 0) {

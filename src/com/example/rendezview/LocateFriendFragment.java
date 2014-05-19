@@ -33,7 +33,7 @@ public class LocateFriendFragment extends Fragment {
 		
 		ListView friendsListItem = (ListView) locateFriendView.findViewById(R.id.listView1);
 
-		ArrayList<FriendInfo> namesList = UserInfo.getUsersNamesAsFriendInfo(MainActivity.getFriendsList());				
+		List<UserInfo> namesList = MainActivity.getFriendsList();				
 		
 		LocateFriendListAdapter adapter = new LocateFriendListAdapter(getActivity(), R.layout.locate_friend_list_item, namesList);
 //		final ArrayAdapter adapter = new ArrayAdapter(getActivity(), android.R.layout.simple_list_item_1, namesList);

@@ -147,6 +147,7 @@ public class AddFriendFragment extends Fragment{
 		    	} else {
 			    	if (UserInfo.containsUser(friendsList, friendName.toString())) {
 			    		Toast.makeText(getActivity(), friendName.toString() + " is already your friend!", Toast.LENGTH_SHORT).show();
+			    		mACTextView.setText("");
 			    		mLocateFriendButton.setEnabled(true);
 				        mFriendsListButton.setEnabled(true);
 			    	} else {			    					    	

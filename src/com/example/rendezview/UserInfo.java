@@ -12,12 +12,19 @@ public class UserInfo {
 	private LatLng userLatLng;
 	private Long userId;
 	private int located;
+	Button button = null;
 	
 	public UserInfo(String name, LatLng latLng, Long id, int located) {
 		this.userName = name;
 		this.userLatLng = latLng;
 		this.userId = id;
 		this.located = located;
+	}
+	
+	public  UserInfo(String name, Long uid, int friendLocated) {
+		this.userName = name;
+		this.userId = uid;
+		located = friendLocated;
 	}
 				
 	public UserInfo() {
@@ -60,6 +67,10 @@ public class UserInfo {
 		this.userLatLng = latLng;
 	}
 	
+	public void setButton(Button b) {
+		button = b;
+	}
+	
 	public static boolean containsUser(List<UserInfo> usersList, String userName) {
 		boolean contains = false;
 		
@@ -73,16 +84,6 @@ public class UserInfo {
 		}
 		
 		return contains;
-	}
-	
-	public static ArrayList<FriendInfo> getUsersNamesAsFriendInfo(List<UserInfo> usersList) {
-		ArrayList<FriendInfo> names = new ArrayList<FriendInfo>();
-		
-		for (int i = 0; i < usersList.size(); i++) {
-			names.add(new FriendInfo(usersList.get(i).getUserName(), usersList.get(i).getUserId(), 0));
-		}
-		
-		return names;
 	}
 	
 	public static ArrayList<String> getUsersNamesAsString(List<UserInfo> usersList) {
