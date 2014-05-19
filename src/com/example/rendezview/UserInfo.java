@@ -79,7 +79,7 @@ public class UserInfo {
 		ArrayList<FriendInfo> names = new ArrayList<FriendInfo>();
 		
 		for (int i = 0; i < usersList.size(); i++) {
-			names.add(new FriendInfo(usersList.get(i).getUserName(), 0));
+			names.add(new FriendInfo(usersList.get(i).getUserName(), usersList.get(i).getUserId(), 0));
 		}
 		
 		return names;

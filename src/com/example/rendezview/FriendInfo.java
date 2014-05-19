@@ -1,15 +1,20 @@
 package com.example.rendezview;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import android.widget.Button;
 
 public class FriendInfo {
-	String name;
+	private String name;
+	private Long id;
 	// 1 if friend is located; 0 otherwise
-	int located;
+	private int located;
 	Button button = null;
 	
-	public  FriendInfo(String friendName, int friendLocated) {
+	public  FriendInfo(String friendName, Long friendId, int friendLocated) {
 		name = friendName;
+		id = friendId;
 		located = friendLocated;
 	}
 	
@@ -19,6 +24,14 @@ public class FriendInfo {
 	
 	public void setName(String friendName) {
 		name = friendName;
+	}
+	
+	public void setFriendId(long friendId) {
+		id = friendId;
+	}
+	
+	public Long getFriendId(){
+		return id;
 	}
 	
 	public String getName() {

@@ -154,9 +154,9 @@ public class AddFriendFragment extends Fragment{
 			    		// Add friend to the friends list from MainActivity in order to make it
 			    		// accesible for any fragment
 			    		MainActivity.addToFriendsList(new UserInfo(friendName.toString(), new LatLng(0,0), (long) 0, 0));
-			    		for (int i = 0; i < friendsList.size(); i++)
-			    			Toast.makeText(getActivity(), friendsList.get(i).getUserName(), Toast.LENGTH_SHORT).show();
-			    			
+			    		Toast.makeText(getActivity(), friendName.toString() + " was added as friend.", Toast.LENGTH_SHORT).show();
+			    		
+			    		mACTextView.setText("");
 			    		mLocateFriendButton.setEnabled(true);
 				        mFriendsListButton.setEnabled(true);
 			    	}
