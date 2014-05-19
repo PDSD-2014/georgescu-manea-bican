@@ -245,8 +245,10 @@ public class Server
 		String email, password, dbemail;
 		String name, surname;
 		int id, user_id;
+		int clients = 0;
 		Scanner sc = new Scanner(message);
 		StringBuffer sbuf = new StringBuffer();
+		StringBuffer aux = new StringBuffer();
 		boolean out = false;
 
 		sc.nextInt();
@@ -270,9 +272,15 @@ public class Server
 				surname = rs.getString("surname");
 				name = rs.getString("name");
 
-				if (user_id != id)
-					sbuf.append(" " + user_id + " " + surname + " " + name);
+				if (user_id != id) {
+					aux.append(" " + user_id + " " + surname + " " + name);
+					clients++;
+				}
 			}
+
+			sbuf.append(" " + clients);
+
+			sbuf.append(aux.toString());
 
 			sbuf.append("\n");
 
@@ -341,6 +349,9 @@ public class Server
 				String request = requestReader.readLine();
 				server.logger.info("Got request: " + request);
 
+				if (request == null)
+					continue;
+
 				char message = request.charAt(0);
 
 				switch (message) {
@@ -356,6 +367,7 @@ public class Server
 						  break;
 					case '6': response = server.listClients(request);
 						  break;
+					default: continue;
 				}
 
 
