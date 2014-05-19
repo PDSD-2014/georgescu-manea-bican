@@ -12,13 +12,13 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class LocateFriendListAdapter extends ArrayAdapter<FriendInfo> {	
+public class LocateFriendListAdapter extends ArrayAdapter<UserInfo> {	
 	
-	private List<FriendInfo> items;
+	private List<UserInfo> items;
 	private int layoutResourceId;
 	private Context context;
 	
-	public LocateFriendListAdapter(Context context, int layoutResourceId, List<FriendInfo> items) {
+	public LocateFriendListAdapter(Context context, int layoutResourceId, List<UserInfo> items) {
 		super(context, layoutResourceId, items);
 		this.layoutResourceId = layoutResourceId;
 		this.context = context;
@@ -36,20 +36,20 @@ public class LocateFriendListAdapter extends ArrayAdapter<FriendInfo> {
 		friendInfoHolder = new FriendInfoHolder();
 		friendInfoHolder.friendInfo = items.get(position);
 		friendInfoHolder.locateUnlocateButton = (Button) row.findViewById(R.id.friendInfo_locate_id);
-		friendInfoHolder.friendInfo.setButton(friendInfoHolder.locateUnlocateButton);
+//		friendInfoHolder.friendInfo.setButton(friendInfoHolder.locateUnlocateButton);
 		friendInfoHolder.locateUnlocateButton.setTag(friendInfoHolder.friendInfo);
 		
 		friendInfoHolder.friendName = (TextView)row.findViewById(R.id.friendInfo_name_id);			
 		
 		row.setTag(friendInfoHolder);			
 		
-		friendInfoHolder.friendName.setText(friendInfoHolder.friendInfo.getName());			
+		friendInfoHolder.friendName.setText(friendInfoHolder.friendInfo.getUserName());			
 				
 		return row;
 	}
 	
 	public static class FriendInfoHolder {
-		FriendInfo friendInfo;
+		UserInfo friendInfo;
 		TextView friendName;		
 		Button locateUnlocateButton;
 	}	

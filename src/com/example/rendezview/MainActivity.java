@@ -113,19 +113,19 @@ public class MainActivity extends Activity {
 	}
 
 	public void locateUnlocateButtonHandler(View v) {
-		FriendInfo friendInfo = (FriendInfo)v.getTag();
+		UserInfo friendInfo = (UserInfo)v.getTag();
 		
-		if (friendInfo.button != null) {
-			if (friendInfo.getLocated() == 0) {
-				friendInfo.button.setText("Unlocate");
-				friendInfo.locate();
-			} else {
-				friendInfo.button.setText("Locate");
-				friendInfo.unlocate();
-			}
-		} else {
-			Toast.makeText(this, "Welcome " + userInfo.getUserName(), Toast.LENGTH_SHORT).show();
-		}
+//		if (friendInfo.button != null) {
+//			if (friendInfo.getLocated() == 0) {
+//				friendInfo.button.setText("Unlocate");
+//				friendInfo.locate();
+//			} else {
+//				friendInfo.button.setText("Locate");
+//				friendInfo.unlocate();
+//			}
+//		} else {
+//			Toast.makeText(this, "Welcome " + userInfo.getUserName(), Toast.LENGTH_SHORT).show();
+//		}
 	}
 	
 	

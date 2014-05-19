@@ -73,17 +73,7 @@ public class UserInfo {
 		}
 		
 		return ui;
-	}
-	
-	public static ArrayList<FriendInfo> getUsersNamesAsFriendInfo(List<UserInfo> usersList) {
-		ArrayList<FriendInfo> names = new ArrayList<FriendInfo>();
-		
-		for (int i = 0; i < usersList.size(); i++) {
-			names.add(new FriendInfo(usersList.get(i).getUserName(), 0));
-		}
-		
-		return names;
-	}
+	}	
 	
 	public static ArrayList<String> getUsersNamesAsString(List<UserInfo> usersList) {
 		ArrayList<String> names = new ArrayList<String>();
