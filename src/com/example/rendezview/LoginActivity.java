@@ -1,5 +1,14 @@
 package com.example.rendezview;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
+
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
@@ -29,8 +38,7 @@ public class LoginActivity extends Activity {
             public void onClick(View v) {
                 // Switching to Register screen
                 Intent i = new Intent(getApplicationContext(), RegisterActivity.class);
-                startActivity(i);
-                finish();
+                startActivity(i);                
             }
         });
         
@@ -50,9 +58,8 @@ public class LoginActivity extends Activity {
 				} else if (password == null || password.equals("")) {
 					Toast.makeText(LoginActivity.this.getApplication(), "Please enter your password!", Toast.LENGTH_SHORT).show();
 				} else {
-					// Check validity for user and password
-					if (tryToLogin == null)
-						tryToLogin = new TryToLogin();
+					// Check validity for user and password					
+					tryToLogin = new TryToLogin();
 					
 					tryToLogin.execute(email, password);
 				}							
@@ -70,10 +77,9 @@ public class LoginActivity extends Activity {
 	    private String email, password; 
 	    
 	    @Override
-	    protected void onPreExecute()
-	    {
+	    protected void onPreExecute() {
 	        super.onPreExecute();
-	        Log.d(TAG, "Se executa onPreaExecute!");
+	        Log.d(TAG, "Se executa onPreExecute!");
 	        progressDialog = ProgressDialog.show(LoginActivity.this, "Authenticating", "Trying to reach server. Please wait few seconds.", true, false);
 	    }
 		
@@ -84,45 +90,73 @@ public class LoginActivity extends Activity {
 	        
 	    	email = nameAndPassword[0]; password = nameAndPassword[1];	        	       		                  
 	
-	    	String result = null;
-	    		        
-	    	// Replace this with actual result from server
-	    	// Server has to respond with name 
-	    	result = "passed";
+	    	String serverResult = null;	    	
 	    	
-	    	int contor = 0;
-	    	while (true) {
-	    		contor++;
-	    		if (contor == 1000)
-	    			break;
-	    	}
+	    	String messageForServer = "4" + " " + email + " " + password + "\n";
 	    	
-	        return result;
+//	    	Log.d(TAG, "*****************************" + messageForServer);
+
+	    	try {	    		
+	    		Socket clientSocket = new Socket(InetAddress.getByName("projects.rosedu.org"), 9000);
+				
+	    		BufferedWriter messageSender = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+	    		BufferedReader responseReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+				
+	    		messageSender.write(messageForServer);
+	    		messageSender.flush();
+	    		
+				serverResult = responseReader.readLine();
+				
+				clientSocket.close();
+			} catch (UnknownHostException e) {
+				Log.e(TAG, "Eroare la contactare server! " + e.getMessage());
+				e.printStackTrace();
+			} catch (IOException e) {
+				Log.e(TAG, "Eroare la conectare cu socketul! " + e.getMessage());
+				e.printStackTrace();
+			}
+	    	
+	        return serverResult;
 	    }
 	
 	    @Override
-	    protected void onPostExecute(String result)
-	    {
+	    protected void onPostExecute(String result) {
 	        super.onPostExecute(result);
 	
 	        if (result == null) {
 	        	progressDialog.dismiss();
 	            Toast.makeText(LoginActivity.this.getApplication(), "Server did not respond! Please try againg or check your internet connection.", Toast.LENGTH_LONG).show();
-	            return;
-	        } else if (result.equals("")) {
-	            progressDialog.dismiss();
-	            Toast.makeText(LoginActivity.this.getApplication(), "Wrong name or password!", Toast.LENGTH_SHORT).show();
-	            return;
-	        } else {	
+	            return;	        
+	        } else {
 	        	Log.d(TAG, "Se executa onPostExecute! Faza de login e completa.");
+	        	String[] resultParts = result.split(" ");  		       
 	        	progressDialog.dismiss();
-	            Toast.makeText(LoginActivity.this.getApplication(), "Succes! !", Toast.LENGTH_SHORT).show();
-	            
-	            // Set the name to userInfo var from MainActivity
-	            UserInfo user = MainActivity.getUserInfo();
-				user.setUserName(result);
-				MainActivity.setUserInfo(user);
-				finish();
+	        	
+	        	if (resultParts[0].equals("4")) {	        			        			        		        		      		        		        		        			            
+		            // Succcesfull login		            
+		            if (resultParts[1].equals("0")) {
+		            	// Set the name to userInfo var from MainActivity	            		            	
+		            	UserInfo user = MainActivity.getUserInfo();
+			            if (user != null) {
+			            	if (resultParts.length == 5) {
+			            		if (user.getUserName() == null )
+			            			user.setUserName(resultParts[3] + " " + resultParts[4]);
+			            		if (user.getUserId() == -1)
+			            			user.setUserId(Integer.valueOf(resultParts[2]));
+			            		MainActivity.setUserInfo(user);     		
+			            	}
+			            }
+		            	finish();
+		            } // User does not exist 
+		            else if (resultParts[1].equals("1")) {
+		            	Toast.makeText(LoginActivity.this.getApplication(), "User does not exist!", Toast.LENGTH_SHORT).show();
+		            } // Incorrect password
+		            else if (resultParts[1].equals("2")) {
+		            	Toast.makeText(LoginActivity.this.getApplication(), "Incorrect password!", Toast.LENGTH_SHORT).show();
+		            }		            		           
+	        	} else {
+	        		Toast.makeText(LoginActivity.this.getApplication(), TAG + "Incorrect result from server", Toast.LENGTH_SHORT).show();
+	        	}	        		        				
 	            
 				return;
 	        }		       	       		      

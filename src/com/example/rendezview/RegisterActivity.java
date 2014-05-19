@@ -1,5 +1,13 @@
 package com.example.rendezview;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -71,11 +79,9 @@ public class RegisterActivity extends Activity{
 					Toast.makeText(RegisterActivity.this.getApplication(), "Please re-type your password!", Toast.LENGTH_SHORT).show();
 				} else if (!password.equals(reTypedPassword)) {
 					Toast.makeText(RegisterActivity.this.getApplication(), "Passwords don't match!", Toast.LENGTH_SHORT).show();
-				} else {
-					if (tryToRegister == null)
-						tryToRegister = new TryToRegister();
-					
-					tryToRegister.execute(name, surname, email, password);
+				} else {					
+					tryToRegister = new TryToRegister();					
+					tryToRegister.execute(name, surname, email, password);									
 				}											
 			}
 		});
@@ -91,10 +97,9 @@ public class RegisterActivity extends Activity{
 	    private String name, surname, email, password; 
 	    
 	    @Override
-	    protected void onPreExecute()
-	    {
+	    protected void onPreExecute() {
 	        super.onPreExecute();
-	        Log.d(TAG, "Se executa onPreaExecute!");
+	        Log.d(TAG, "Se executa onPreExecute!");
 	        progressDialog = ProgressDialog.show(RegisterActivity.this, "Registering", "Trying to reach server. Please wait few seconds.", true, false);
 	    }
 		
@@ -103,43 +108,61 @@ public class RegisterActivity extends Activity{
 	    protected String doInBackground(String... nameAndPassword) {
 	    	Log.d(TAG, "Se executa doInBackground!");
 	        
-	    	name = nameAndPassword[0]; surname = nameAndPassword[1]; email = nameAndPassword[2]; password = nameAndPassword[3]; 	        	       		                  
+	    	name = nameAndPassword[0]; surname = nameAndPassword[1]; email = nameAndPassword[2]; password = nameAndPassword[3];	    	
 	
-	    	String result = null;
-	    		        
-	    	// Replace this with actual result from server
-	    	result = "passed";
+	    	String serverResult = null;	    	
 	    	
-	    	int contor = 0;
-	    	while (true) {
-	    		contor++;
-	    		if (contor == 1000)
-	    			break;
-	    	}
+	    	String messageForServer = "5" + " " + name + " " + surname + " " + email + " " + password + "\n";
 	    	
-	        return result;
+//	    	Log.d(TAG, "*****************************" + messageForServer);
+
+	    	try {	    		
+	    		Socket clientSocket = new Socket(InetAddress.getByName("projects.rosedu.org"), 9000);
+				
+	    		BufferedWriter messageSender = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+	    		BufferedReader responseReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+				
+	    		messageSender.write(messageForServer);
+	    		messageSender.flush();
+	    		
+				serverResult = responseReader.readLine();
+				
+				clientSocket.close();
+			} catch (UnknownHostException e) {
+				Log.e(TAG, "Eroare la contactare server! " + e.getMessage());
+				e.printStackTrace();
+			} catch (IOException e) {
+				Log.e(TAG, "Eroare la conectare cu socketul! " + e.getMessage());
+				e.printStackTrace();
+			}
+	    	
+	        return serverResult;
 	    }
 	
 	    @Override
-	    protected void onPostExecute(String result)
-	    {
+	    protected void onPostExecute(String result) {
 	        super.onPostExecute(result);
 	
 	        if (result == null) {
 	        	progressDialog.dismiss();
 	            Toast.makeText(RegisterActivity.this.getApplication(), "Server did not respond! Please try againg or check your internet connection.", Toast.LENGTH_LONG).show();
 	            return;	        
-	        } else {	
-	        	Log.d(TAG, "Se executa onPostExecute! Faza de login e completa.");
+	        } else {
+	        	Log.d(TAG, "Se executa onPostExecute! Faza de register e completa.");
+	        	String[] resultParts = result.split(" ");
 	        	progressDialog.dismiss();
-	            Toast.makeText(RegisterActivity.this.getApplication(), "Succes! !", Toast.LENGTH_SHORT).show();
 	            
-	            // Set the name to userInfo var from MainActivity
-	            UserInfo user = MainActivity.getUserInfo();
-				user.setUserName(name + surname);
-				MainActivity.setUserInfo(user);
-				
-				finish();
+	        	Toast.makeText(RegisterActivity.this.getApplication(), "Server returned " + result, Toast.LENGTH_SHORT).show();	            	           
+	            
+	        	if (resultParts[0].equals("5")) {
+	        		// Ok
+	        		if (resultParts[1].equals("0")) {
+	        			finish();
+	        		} // Existing user
+	        		else if (resultParts[1].equals("1")) {
+	        			Toast.makeText(RegisterActivity.this.getApplication(), "This user is already registered!", Toast.LENGTH_SHORT).show();
+	        		}
+	        	}	            	           						
 					            
 				return;
 	        }		       	       		      

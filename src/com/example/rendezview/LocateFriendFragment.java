@@ -20,16 +20,19 @@ import android.widget.TextView;
 public class LocateFriendFragment extends Fragment {
 	
 	Cursor cursor;
+	View locateFriendView = null;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
+		super.onCreate(savedInstanceState);		
+		setRetainInstance(true);
 	}
 		
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-		// Inflate the layout for this fragment
-		View locateFriendView = inflater.inflate(R.layout.locate_friend_layout, container, false);			
+		// Inflate the layout for this fragment		
+		if (locateFriendView == null)
+			locateFriendView = inflater.inflate(R.layout.locate_friend_layout, container, false);
 		
 		ListView friendsListItem = (ListView) locateFriendView.findViewById(R.id.listView1);
 

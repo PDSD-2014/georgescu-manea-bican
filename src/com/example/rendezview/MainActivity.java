@@ -50,7 +50,7 @@ public class MainActivity extends Activity {
 	
 	public static synchronized UserInfo getUserInfo() {
 		return userInfo; 
-	}
+	}	
 	
 	private boolean createActionBar() {		
 		
@@ -197,9 +197,9 @@ public class MainActivity extends Activity {
 		
 		@Override
 		protected void onPostExecute(Boolean result) {
-			Toast.makeText(getApplicationContext(),
+			/*Toast.makeText(getApplicationContext(),
 					"Fragments loaded!",
-						Toast.LENGTH_SHORT).show();
+						Toast.LENGTH_SHORT).show();*/
 		}
 	}		
 }

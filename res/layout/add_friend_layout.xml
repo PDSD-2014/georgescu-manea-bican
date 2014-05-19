@@ -1,76 +1,88 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical" 
-    android:background="#181818" >
+<ScrollView
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="fill_parent"
+  android:layout_height="fill_parent"
+  android:fillViewport="true">
 
-    <Button
-       android:id="@+id/button2"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
-        android:layout_below="@+id/button1"                
-        android:layout_marginLeft="80dp"
-        android:layout_marginRight="80dp"
-        android:gravity="center"
-        android:textAlignment="center"
-        android:text="Locate friend" 
-        android:enabled="false" />
-    
-    <Button
-       android:id="@+id/button3"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
-        android:layout_below="@+id/button2"                
-        android:layout_marginLeft="80dp"
-        android:layout_marginRight="80dp"
-        android:gravity="center"
-        android:textAlignment="center"
-        android:text="Friends List" 
-        android:enabled="false" />
-
-    <Button
-        android:id="@+id/button1"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/button2"
-        android:layout_alignRight="@+id/button2"
-        android:layout_below="@+id/autoCompleteTextView1"
-        android:gravity="center"
-        android:text="Add friend"
-        android:textAlignment="center" />
-
-    <AutoCompleteTextView
-        android:id="@+id/autoCompleteTextView1"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/button1"
-        android:layout_alignRight="@+id/button1"
-        android:layout_below="@+id/editText1"
-        android:background="@drawable/abc_list_selector_disabled_holo_light"
-        android:ems="10"
-        android:hint="Enter name"
-        android:popupBackground="#EFEEEC"
-        android:textColor="@color/abc_search_url_text_holo" >
-
-        <requestFocus />
-    </AutoCompleteTextView>
-
-    <EditText
-        android:id="@+id/editText1"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/autoCompleteTextView1"
-        android:layout_alignParentTop="true"
-        android:layout_marginTop="78dp"
-        android:background="#00000000"
-        android:editable="false"
-        android:ems="10"
-        android:fontFamily="sans-serif-condensed"
-        android:text="Search for your friends"
-        android:textColor="@color/abc_search_url_text_holo"
-        android:textStyle="bold" />
-
-</RelativeLayout>
+	<RelativeLayout 
+	    android:layout_width="match_parent"
+	    android:layout_height="match_parent"
+	    android:orientation="vertical" 
+	    android:background="#181818" >
+	
+	    <Button
+	        android:id="@+id/add_friend_button3"
+	        android:layout_width="fill_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_alignLeft="@+id/add_friend_button2"
+	        android:layout_alignRight="@+id/add_friend_button2"
+	        android:layout_below="@+id/add_friend_button2"
+	        android:enabled="false"
+	        android:gravity="center"
+	        android:text="Friends List"
+	        android:textAlignment="center" />
+	
+	    <Button
+	        android:id="@+id/add_friend_button2"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignParentLeft="true"
+	        android:layout_alignParentRight="true"
+	        android:layout_below="@+id/add_friend_button1"
+	        android:enabled="false"
+	        android:gravity="center"
+	        android:text="Locate friend"
+	        android:textAlignment="center" />
+	
+	    <Button
+	        android:id="@+id/add_friend_button1"
+	        android:layout_width="fill_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_alignParentLeft="true"
+	        android:layout_alignParentRight="true"
+	        android:layout_below="@+id/autoCompleteTextView1"
+	        android:layout_marginTop="102dp"
+	        android:gravity="center"
+	        android:text="Add friend"
+	        android:textAlignment="center" />
+	
+	    <TextView
+	        android:id="@+id/add_friend_textView2"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignParentLeft="true"
+	        android:layout_below="@+id/autoCompleteTextView1"
+	        android:layout_marginTop="24dp"
+	        android:editable="false"
+	        android:text="Add him/her as a friend in order to locate this person on the map." 
+	        android:textAlignment="center"
+	    	android:textColor="#FF00FF" />
+	
+	    <AutoCompleteTextView
+	        android:id="@+id/autoCompleteTextView1"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_alignParentLeft="true"
+	        android:layout_below="@+id/add_friend_textView1"
+	        android:layout_marginTop="19dp"
+	        android:background="@drawable/abc_list_selector_disabled_holo_light"
+	        android:ems="10"
+	        android:hint="Enter name"
+	        android:popupBackground="#EFEEEC"	        
+	        android:textColor="#707070" />
+	
+	    <TextView
+	        android:id="@+id/add_friend_textView1"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignParentLeft="true"
+	        android:layout_alignParentTop="true"
+	        android:layout_marginTop="22dp"
+	        android:editable="false"
+	        android:text="Search for one of your friends that has this app and if he/she is online the app will retrieve him/her name."
+	        android:textAlignment="center"
+	        android:textColor="#FF00FF" />
+	
+	</RelativeLayout>	
+</ScrollView>

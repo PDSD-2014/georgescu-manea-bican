@@ -8,12 +8,12 @@ import android.widget.Button;
 import com.google.android.gms.maps.model.LatLng;
 
 public class UserInfo {
-	private String userName;
-	private LatLng userLatLng;
-	private Long userId;
-	private int located;
+	private String userName = null;
+	private LatLng userLatLng = null;
+	private int userId = -1;
+	private int located = 0;
 	
-	public UserInfo(String name, LatLng latLng, Long id, int located) {
+	public UserInfo(String name, LatLng latLng, int id, int located) {
 		this.userName = name;
 		this.userLatLng = latLng;
 		this.userId = id;
@@ -40,7 +40,7 @@ public class UserInfo {
 		return userName;
 	}
 	
-	public Long getUserId() {			
+	public int getUserId() {			
 		return userId;
 	}
 	
@@ -52,7 +52,7 @@ public class UserInfo {
 		this.userName = name;
 	}
 	
-	public void setUserId(Long id) {			
+	public void setUserId(int id) {			
 		this.userId = id;
 	}
 	
@@ -60,19 +60,19 @@ public class UserInfo {
 		this.userLatLng = latLng;
 	}
 	
-	public static boolean containsUser(List<UserInfo> usersList, String userName) {
-		boolean contains = false;
+	public static UserInfo containsUser(List<UserInfo> usersList, String userName) {
+		UserInfo ui = null;
 		
 		for (int i = 0; i < usersList.size(); i++) {
 			String name = usersList.get(i).getUserName();
 			
 			if (userName.equals(name)) {
-				contains = true;
+				ui = usersList.get(i);
 				break;
 			}
 		}
 		
-		return contains;
+		return ui;
 	}
 	
 	public static ArrayList<FriendInfo> getUsersNamesAsFriendInfo(List<UserInfo> usersList) {
