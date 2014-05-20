@@ -302,6 +302,8 @@ public class Server
 		switch (code) {
 			case '0': reply = addMeeting(message);
 				  break;
+			case '2': reply = sendMeetingInfo(message);
+				  break;
 		}
 
 		return reply;
@@ -368,6 +370,75 @@ public class Server
 		}
 
 		sbuf.append(id + "\n");
+
+		return sbuf.toString();
+	}
+
+	public String sendMeetingInfo(String message)
+	{
+		Scanner sc = new Scanner(message);
+		Scanner scParticipants;
+		String participants;
+		StringBuffer sbuf = new StringBuffer();
+		StringBuffer info = null;
+		int id;
+		boolean found = false;
+
+		sbuf.append("7 ");
+
+		sc.nextInt();
+		sc.nextInt();
+		id = sc.nextInt();
+
+		Connection c = null;
+		Statement stmt = null;
+		try {
+			Class.forName("org.sqlite.JDBC");
+			c = DriverManager.getConnection("jdbc:sqlite:test.db");
+			stmt = c.createStatement();
+
+			String sql = "SELECT meeting_id, name, latitude, longitude, " +
+				     "part_num, part_id FROM meeting;";
+
+			ResultSet rs = stmt.executeQuery(sql);
+
+			while (rs.next()) {
+				participants = rs.getString("part_id");
+				scParticipants = new Scanner(participants);
+
+				while (scParticipants.hasNextInt()) {
+					if (scParticipants.nextInt() == id) {
+						found = true;
+						break;
+					}
+				}
+
+				if (found) {
+					info = new StringBuffer();
+					info.append("3 ");
+					info.append(rs.getString("name") + " ");
+					info.append(rs.getFloat("latitude") + " " +
+						    rs.getFloat("longitude") + " ");
+					info.append(rs.getInt("part_num") + " ");
+					info.append(rs.getString("part_id"));
+					info.append("\n");
+				}
+			}
+
+			rs.close();
+
+			stmt.close();
+			c.close();
+		} catch (Exception e) {
+			logger.severe("Database error: " + e.getMessage());
+		}
+
+		if (found)
+			sbuf.append(info.toString());
+		else
+			sbuf.append("4\n");
+
+		logger.info("Sent meeting info: " + sbuf.toString());
 
 		return sbuf.toString();
 	}
