@@ -125,7 +125,7 @@ public class LoginActivity extends Activity {
 	
 	        if (result == null) {
 	        	progressDialog.dismiss();
-	            Toast.makeText(LoginActivity.this.getApplication(), "Server did not respond! Please try againg or check your internet connection.", Toast.LENGTH_LONG).show();
+	            Toast.makeText(LoginActivity.this.getApplication(), "Server did not respond! Please try again or check your internet connection.", Toast.LENGTH_LONG).show();
 	            return;	        
 	        } else {
 	        	Log.d(TAG, "Se executa onPostExecute! Faza de login e completa.");
@@ -149,10 +149,10 @@ public class LoginActivity extends Activity {
 		            	finish();
 		            } // User does not exist 
 		            else if (resultParts[1].equals("1")) {
-		            	Toast.makeText(LoginActivity.this.getApplication(), "User does not exist!", Toast.LENGTH_SHORT).show();
+		            	Toast.makeText(LoginActivity.this.getApplication(), "User does not exist! Please register!", Toast.LENGTH_SHORT).show();
 		            } // Incorrect password
 		            else if (resultParts[1].equals("2")) {
-		            	Toast.makeText(LoginActivity.this.getApplication(), "Incorrect password!", Toast.LENGTH_SHORT).show();
+		            	Toast.makeText(LoginActivity.this.getApplication(), "Incorrect password! Try again!", Toast.LENGTH_SHORT).show();
 		            }		            		           
 	        	} else {
 	        		Toast.makeText(LoginActivity.this.getApplication(), TAG + "Incorrect result from server", Toast.LENGTH_SHORT).show();

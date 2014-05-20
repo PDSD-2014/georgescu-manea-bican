@@ -152,7 +152,7 @@ public class RegisterActivity extends Activity{
 	        	String[] resultParts = result.split(" ");
 	        	progressDialog.dismiss();
 	            
-	        	Toast.makeText(RegisterActivity.this.getApplication(), "Server returned " + result, Toast.LENGTH_SHORT).show();	            	           
+	        	Toast.makeText(RegisterActivity.this.getApplication(), "Your account has been registered! You can now login to RendezView.", Toast.LENGTH_SHORT).show();	            	           
 	            
 	        	if (resultParts[0].equals("5")) {
 	        		// Ok

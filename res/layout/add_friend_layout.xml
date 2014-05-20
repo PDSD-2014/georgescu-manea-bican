@@ -40,7 +40,6 @@
 	        android:layout_width="fill_parent"
 	        android:layout_height="wrap_content"
 	        android:layout_alignParentLeft="true"
-	        android:layout_alignParentRight="true"
 	        android:layout_below="@+id/autoCompleteTextView1"
 	        android:layout_marginTop="102dp"
 	        android:gravity="center"
@@ -80,7 +79,7 @@
 	        android:layout_alignParentTop="true"
 	        android:layout_marginTop="22dp"
 	        android:editable="false"
-	        android:text="Search for one of your friends that has this app and if he/she is online the app will retrieve him/her name."
+	        android:text="Search for friends that have this app and if he/she is online the app will retrieve him/her name."
 	        android:textAlignment="center"
 	        android:textColor="#FF00FF" />
 	
