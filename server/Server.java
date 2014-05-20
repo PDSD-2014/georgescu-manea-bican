@@ -304,6 +304,8 @@ public class Server
 				  break;
 			case '2': reply = sendMeetingInfo(message);
 				  break;
+			case '5': cancelMeeting(message);
+				  break;
 		}
 
 		return reply;
@@ -441,6 +443,32 @@ public class Server
 		logger.info("Sent meeting info: " + sbuf.toString());
 
 		return sbuf.toString();
+	}
+
+	public void cancelMeeting(String message)
+	{
+		Scanner sc = new Scanner(message);
+		StringBuffer sbuf = new StringBuffer();
+		int id;
+
+		sc.nextInt();
+		sc.nextInt();
+		id = sc.nextInt();
+
+		Connection c = null;
+		Statement stmt = null;
+		try {
+			Class.forName("org.sqlite.JDBC");
+			c = DriverManager.getConnection("jdbc:sqlite:test.db");
+			stmt = c.createStatement();
+
+			String sql = "DELETE from meeting WHERE meeting_id = " + id + ";";
+
+			stmt.executeUpdate(sql);
+
+		} catch (Exception e) {
+			logger.severe("Database error: " + e.getMessage());
+		}
 	}
 
 	public static void main( String args[] )
