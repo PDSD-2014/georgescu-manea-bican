@@ -35,9 +35,15 @@ public class MainActivity extends Activity {
 	
 	public static List<UserInfo> mFriendsList = new ArrayList<UserInfo>();
 	
+	Bundle mBundle = null;
+	
 	// Used for storing friends list set on addFriendFragment
 	public static synchronized void addToFriendsList(UserInfo friendInfo) {
 		mFriendsList.add(friendInfo);
+	}
+	
+	public static synchronized void setFriendsList(List<UserInfo> friendList) {
+		mFriendsList = friendList;
 	}
 	
 	public static synchronized List<UserInfo> getFriendsList() {
@@ -81,12 +87,12 @@ public class MainActivity extends Activity {
 		mGoogleMapTab.setTabListener(new MyTabsListener(mGoogleMapFragment,
 				getApplicationContext()));			
 
-		// add the tabs to the action bar
+		// Add the tabs to the action bar.
 		actionbar.addTab(mGoogleMapTab);
 		actionbar.addTab(mAddFriendTab);
 		actionbar.addTab(mLocateFriendTab);
-		actionbar.addTab(mSetMeetingTab);
-			
+		actionbar.addTab(mSetMeetingTab);			
+		
 		return true;
 	}
 	
@@ -94,20 +100,26 @@ public class MainActivity extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_main);
-			
-		StartFragmentsTask startFragmentsTask = new StartFragmentsTask();
-		startFragmentsTask.execute(savedInstanceState);
+		mBundle = savedInstanceState;
+		setContentView(R.layout.activity_main);				
+		
+		StartFragmentsTask startFragmentsTask = new StartFragmentsTask();	    		
+		startFragmentsTask.execute(savedInstanceState);							
+		
+		// Get friends from database
+		DatabaseHandler db = new DatabaseHandler(this);
+		List<UserInfo> friendList = db.getAllFriends();
+		this.setFriendsList(friendList);		
 		
 		Intent loginIntent = new Intent(getApplicationContext(), LoginActivity.class);
         startActivityForResult(loginIntent, 0);
 	}	
 
 	protected void onActivityResult(int requestCode, int resultCode,
-             Intent data) {
-	    if (requestCode == 0) {
-	        if (resultCode == RESULT_OK) {
-	        	Toast.makeText(this, "Welcome " + userInfo.getUserName(), Toast.LENGTH_SHORT).show();
+             Intent data) {		
+	    if (requestCode == 0) {	    	
+	        if (resultCode == 0) {	        	
+//	        	Toast.makeText(this, "Welcome " + userInfo.getUserName(), Toast.LENGTH_SHORT).show();
 	        }
 	    }
 	}
@@ -177,6 +189,23 @@ public class MainActivity extends Activity {
 		super.onSaveInstanceState(outState);
 	}
 	
+	@Override
+	protected void onStop() {
+		super.onStop();
+//		Toast.makeText(this, "MainActivity -> onStop", Toast.LENGTH_LONG).show();		
+	}
+	
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+//		Toast.makeText(this, "MainActivity -> onDestroy", Toast.LENGTH_LONG).show();
+		// Save friends in database
+		DatabaseHandler db = new DatabaseHandler(this);
+		List<UserInfo> friendsList = this.getFriendsList();
+		for (int i = 0; i < friendsList.size(); i++) {
+			db.addFriend(friendsList.get(i));
+		}
+	}
 	
 	protected class StartFragmentsTask extends AsyncTask<Bundle, Void, Boolean> {
 	    @Override
@@ -184,8 +213,8 @@ public class MainActivity extends Activity {
 	    	Boolean flag_to_return = createActionBar();				    		    	    			
 	    	
 	    	// restore to navigation
-		if (savedInstanceState[0] != null) {			
-			Toast.makeText(getApplicationContext(),
+	    	if (savedInstanceState[0] != null) {			
+	    		Toast.makeText(getApplicationContext(),
 					"tab is " + savedInstanceState[0].getInt(TAB_KEY_INDEX, 0),
 						Toast.LENGTH_SHORT).show();
 		

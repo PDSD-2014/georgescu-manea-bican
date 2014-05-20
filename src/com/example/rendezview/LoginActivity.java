@@ -129,8 +129,7 @@ public class LoginActivity extends Activity {
 	            return;	        
 	        } else {
 	        	Log.d(TAG, "Se executa onPostExecute! Faza de login e completa.");
-	        	String[] resultParts = result.split(" ");  		       
-	        	progressDialog.dismiss();
+	        	String[] resultParts = result.split(" ");  		       	        	
 	        	
 	        	if (resultParts[0].equals("4")) {	        			        			        		        		      		        		        		        			            
 		            // Succcesfull login		            
@@ -145,7 +144,7 @@ public class LoginActivity extends Activity {
 			            			user.setUserId(Integer.valueOf(resultParts[2]));
 			            		MainActivity.setUserInfo(user);     		
 			            	}
-			            }
+			            }			            
 		            	finish();
 		            } // User does not exist 
 		            else if (resultParts[1].equals("1")) {
@@ -157,7 +156,9 @@ public class LoginActivity extends Activity {
 	        	} else {
 	        		Toast.makeText(LoginActivity.this.getApplication(), TAG + "Incorrect result from server", Toast.LENGTH_SHORT).show();
 	        	}	        		        				
-	            
+	            	        	      
+	        	progressDialog.dismiss();
+	        	
 				return;
 	        }		       	       		      
 	    }	
