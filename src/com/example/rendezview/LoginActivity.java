@@ -11,6 +11,7 @@ import java.net.UnknownHostException;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -79,8 +80,18 @@ public class LoginActivity extends Activity {
 	    @Override
 	    protected void onPreExecute() {
 	        super.onPreExecute();
-	        Log.d(TAG, "Se executa onPreExecute!");
-	        progressDialog = ProgressDialog.show(LoginActivity.this, "Authenticating", "Trying to reach server. Please wait few seconds.", true, false);
+	        Log.d(TAG, "Se executa onPreExecute!");	        
+	        progressDialog = new ProgressDialog(LoginActivity.this);
+	        progressDialog.setMessage("Trying to reach server. Please wait few seconds.");
+	        progressDialog.setCancelable(false);
+	        progressDialog.setTitle("Authenticating");
+	        progressDialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Cancel", new DialogInterface.OnClickListener() {
+	            @Override
+	            public void onClick(DialogInterface dialog, int which) {
+	                dialog.dismiss();
+	            }
+	        });
+	        progressDialog.show();	        
 	    }
 		
 	    @SuppressWarnings("unchecked")

@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -100,7 +101,18 @@ public class RegisterActivity extends Activity{
 	    protected void onPreExecute() {
 	        super.onPreExecute();
 	        Log.d(TAG, "Se executa onPreExecute!");
-	        progressDialog = ProgressDialog.show(RegisterActivity.this, "Registering", "Trying to reach server. Please wait few seconds.", true, false);
+//	        progressDialog = ProgressDialog.show(RegisterActivity.this, "Registering", "Trying to reach server. Please wait few seconds.", true, false);
+	        progressDialog = new ProgressDialog(RegisterActivity.this);
+	        progressDialog.setMessage("Trying to reach server. Please wait few seconds.");
+	        progressDialog.setCancelable(false);
+	        progressDialog.setTitle("Registering");
+	        progressDialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Cancel", new DialogInterface.OnClickListener() {
+	            @Override
+	            public void onClick(DialogInterface dialog, int which) {
+	                dialog.dismiss();
+	            }
+	        });
+	        progressDialog.show();
 	    }
 		
 	    @SuppressWarnings("unchecked")

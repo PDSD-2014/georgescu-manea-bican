@@ -67,7 +67,12 @@ public class AddFriendFragment extends Fragment{
 	
 	@Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
+		// Update usersList
+		int userId = MainActivity.getUserInfo().getUserId();
+		if (userId != -1)
+			startNewAsyncTask(6, userId);	
+		
+		// Inflate the layout for this fragment
 		addFriendView = inflater.inflate(R.layout.add_friend_layout, container, false);
 		addFriendView.setBackgroundColor(Color.BLACK);
 		mACTextView = (AutoCompleteTextView) addFriendView.findViewById(R.id.autoCompleteTextView1);		
@@ -117,8 +122,9 @@ public class AddFriendFragment extends Fragment{
 				        mFriendsListButton.setEnabled(true);
 			    	} else {			    					    				    					    				    				    					    	
 			    		// Add friend to the friends list from MainActivity in order to make it
-			    		// accesible for any fragment			    			    				
-	    				Toast.makeText(getActivity(), friendName.toString() + " has been added as your friend!", Toast.LENGTH_SHORT).show();
+			    		// accesible for any fragment	    			    				
+			    		MainActivity.addToFriendsList(friendInfo);
+	    				Toast.makeText(getActivity(), friendName.toString() + " has been added as your friend!", Toast.LENGTH_SHORT).show();	    				
 			    		mLocateFriendButton.setEnabled(true);
 				        mFriendsListButton.setEnabled(true);			    					    	
 			    	}
@@ -144,7 +150,7 @@ public class AddFriendFragment extends Fragment{
 				startNewAsyncTask(2, friendInfo.getUserId());
 				
 //				Toast.makeText(getActivity(), "Friend id " + friendInfo.getUserId(), Toast.LENGTH_LONG).show();				
-//				getActivity().getActionBar().setSelectedNavigationItem(0);
+				getActivity().getActionBar().setSelectedNavigationItem(0);
 			}
 		});
 		
@@ -305,17 +311,14 @@ public class AddFriendFragment extends Fragment{
             		if (friendId == friendInfo.getUserId()) {
             			if (resultParts.length == 4) {
 //            				Toast.makeText(getActivity(), "Match: " + Double.parseDouble(resultParts[2]) + " " + Double.parseDouble(resultParts[3]), Toast.LENGTH_LONG).show();
-            				friendInfo.setUserLocation(new LatLng(Double.parseDouble(resultParts[2]), Double.parseDouble(resultParts[3])));
+            				friendInfo.setUserLocation(new LatLng(Double.parseDouble(resultParts[2]), Double.parseDouble(resultParts[3])));            				            			
     			    		// Add friend to the friends list from MainActivity in order to make it
-    			    		// accesible for any fragment			    					    	
-    			    		MainActivity.addToFriendsList(friendInfo);    			    		
-    			    		friendInfo = null;
+    			    		// accesible for any fragment            				
+            				MainActivity.addToFriendsList(friendInfo);  			    		
             			}
             		}
             	}
             }
         }                
     }
-	
-	
 }

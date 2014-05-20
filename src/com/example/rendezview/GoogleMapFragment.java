@@ -8,10 +8,10 @@ import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.List;
 
 import android.app.Fragment;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.location.Location;
 import android.location.LocationManager;
@@ -23,11 +23,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
@@ -42,11 +44,15 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
     private String PROVIDER_PASSIVE = "passive";
     
     // 30 s location update interval
-    private int UPDATE_LOCATION_TIMEOUT = 15 * 1000;
+    private int UPDATE_LOCATION_TIMEOUT = 10 * 1000;
     // 0 meters location update
-    private int UPDATE_LOCATION_DISTANCE = 0;
+    private int UPDATE_LOCATION_DISTANCE = 10;
+           
+    private float cameraZoom = 15;
     
-    private LatLng defaultLatLng = new LatLng(44.438929, 26.104165);
+    private List<Marker> markerList = new ArrayList<Marker>();
+    
+    private int widthPixels, heightPixels;
         
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -57,9 +63,13 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
         
         MapsInitializer.initialize(getActivity());              
         
-        setUpMapIfNeeded(inflatedView);
+        mMap = ((MapView) inflatedView.findViewById(R.id.map)).getMap();
+        
         // Show markers on map.
-        setUpMap();              
+        clearMap();
+        setUserOnMap();
+        setFriendsOnMap();
+        setCamera();
         
         return inflatedView;
     }
@@ -68,14 +78,14 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
+                
         mLocationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
         String provider = getBestProviderForLocation();
         mLocationManager.requestLocationUpdates(provider, UPDATE_LOCATION_TIMEOUT, UPDATE_LOCATION_DISTANCE, this);
-    }
-
-    private void setUpMapIfNeeded(View inflatedView) {
-        mMap = ((MapView) inflatedView.findViewById(R.id.map)).getMap();                       
-    }
+        
+        widthPixels = getActivity().getResources().getDisplayMetrics().widthPixels;
+        heightPixels = getActivity().getResources().getDisplayMetrics().heightPixels;
+    }  
 
     private String getBestProviderForLocation() {
     	List<String> providers = mLocationManager.getProviders(true);
@@ -115,22 +125,55 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
     	}
     }
     
-    private void setFriendsOnMap() {
+    private void getFriendsLocations() {
     	List<UserInfo> friendsList = MainActivity.getFriendsList();
     	
     	// Show all friends on the map
     	if (friendsList.size() > 0) {
     		for (UserInfo friend : friendsList) {
-//    			Toast.makeText(getActivity(), friendsList.get(0).getUserName(), Toast.LENGTH_LONG).show();
     			if (friend.getLocated() == 1) {
-    				LatLng latLng = friend.getUserLocation();    			    			    	
-    				setMarkerOnMapWithoutMovingCamera(latLng.latitude, latLng.longitude, friend.getUserName());
+    				// Request its location from server
+    				TryToRetrieveUserLocation tryToRetrieveUserLocation = new TryToRetrieveUserLocation();
+    				tryToRetrieveUserLocation.execute(friend.getUserId());    				
     			}
     		}
     	}
     }
     
-    private void setUpMap() {    	    	    	                      
+    private void setFriendsOnMap() {
+    	getFriendsLocations();
+    	
+    	List<UserInfo> friendsList = MainActivity.getFriendsList();
+    	
+    	// Show all friends on the map
+    	if (friendsList.size() > 0) {
+    		for (UserInfo friend : friendsList) {
+    			if (friend.getLocated() == 1) {
+    				setMarkerOnMap(friend.getUserLocation().latitude, friend.getUserLocation().longitude, friend.getUserName());
+    			}
+    		}
+    	}
+    }
+    
+    private void setCamera() {
+    	CameraUpdate cu = null;
+    	
+    	if (markerList.size() > 0) {
+	    	LatLngBounds.Builder builder = new LatLngBounds.Builder();	    	
+	    	for (Marker marker : markerList) {
+	    	    builder.include(marker.getPosition());
+	    	}
+	    	LatLngBounds bounds = builder.build();
+	    	cu = CameraUpdateFactory.newLatLngBounds(bounds, widthPixels, heightPixels, 20);	    	
+    	} else if (markerList.size() == 1){
+    		cu = CameraUpdateFactory.newLatLngZoom(markerList.get(0).getPosition(), 20);
+    	}
+    	
+    	if (cu != null)
+    		mMap.animateCamera(cu);
+    }
+    
+    private void setUserOnMap() {    	    	    	                      
     	Location userLocation = getUserLocation();
     	
     	LatLng userLatLng = null;
@@ -138,28 +181,27 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
     	String uiName = MainActivity.getUserInfo().getUserName(); 
     	
     	if (uiName == null)
-    		uiName = "";
+    		uiName = "Waiting for server...";
     	
     	if (userLocation != null) {
     		userLatLng = new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
     		setMarkerOnMap(userLatLng.latitude, userLatLng.longitude, uiName);    		
         	sendLocationToServer(userLatLng.latitude, userLatLng.longitude);
-    	}
-    	
-    	setFriendsOnMap();
+    	}    	    
     }          
     
-    // Only set marker on map. Do not move the camera.
-    private void setMarkerOnMapWithoutMovingCamera(double latitude, double longitude, String markerTitle) {
-    	LatLng userLatLng = new LatLng(latitude, longitude);
-    	
-    	MarkerOptions userMarkerOptions = new MarkerOptions();
-    	userMarkerOptions.position(userLatLng);
-    	userMarkerOptions.title(markerTitle);
-    	
-    	Marker userMarker = mMap.addMarker(userMarkerOptions);
-    	userMarker.showInfoWindow();
-    }
+//    // Only set marker on map. Do not move the camera.
+//    private void setMarkerOnMapWithoutMovingCamera(double latitude, double longitude, String markerTitle) {
+//    	LatLng userLatLng = new LatLng(latitude, longitude);
+//    	
+//    	MarkerOptions userMarkerOptions = new MarkerOptions();
+//    	userMarkerOptions.position(userLatLng);
+//    	userMarkerOptions.title(markerTitle);
+//    	
+//    	Marker userMarker = mMap.addMarker(userMarkerOptions);
+//    	userMarker.showInfoWindow();    	
+//    	markerList.add(userMarker);
+//    }
 
     // Set marker on map and move the camera.
     private void setMarkerOnMap(double latitude, double longitude, String markerTitle) {
@@ -171,7 +213,8 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
     	
     	Marker userMarker = mMap.addMarker(userMarkerOptions);
     	userMarker.showInfoWindow();
-    	mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 12));      
+    	markerList.add(userMarker);
+//    	mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, cameraZoom));      
     }
     
     @Override
@@ -197,19 +240,27 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
 		super.onLowMemory();
 		mMapView.onLowMemory();
 	}
+    
+    private void clearMap() {
+    	cameraZoom = mMap.getCameraPosition().zoom;
+    	mMap.clear();
+		markerList.clear();
+    }
 
 	@Override
-	public void onLocationChanged(Location location) {		
-		mMap.clear();		
+	public void onLocationChanged(Location location) {				
+		clearMap();
 		
 		String uiName = MainActivity.getUserInfo().getUserName(); 
 		
-		if (uiName != null) {
-			setMarkerOnMap(location.getLatitude(), location.getLongitude(), uiName);
-			sendLocationToServer(location.getLatitude(), location.getLongitude());
-		}
-		
-		setFriendsOnMap();
+		if (uiName == null)
+    		uiName = "Waiting for server...";
+				
+		setMarkerOnMap(location.getLatitude(), location.getLongitude(), uiName);
+		sendLocationToServer(location.getLatitude(), location.getLongitude());		
+				        
+        setFriendsOnMap();
+        setCamera();		
 	}
 																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																													
 	@Override
@@ -245,7 +296,7 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
 	    
 	    	int userId = userIdLatitudeAndLongitude[0].intValue();	    		    
 	    	
-	    	String messageForServer = "1" + " " + userId + " " + userIdLatitudeAndLongitude[2] + " " + userIdLatitudeAndLongitude[2] + "\n";
+	    	String messageForServer = "1" + " " + userId + " " + userIdLatitudeAndLongitude[1] + " " + userIdLatitudeAndLongitude[2] + "\n";
 	    	
 //	    	Log.d(TAG, "*****************************" + messageForServer);
 	    	
@@ -277,4 +328,70 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
 			return;	     		       	       		     
 	    }	
 	}
+	
+	// Class that does the background work
+	private class TryToRetrieveUserLocation extends AsyncTask<Integer, Void, String> {
+
+		private String TAG = "GoogleMapFragment.TryToRetrieveUserLocation";				       
+                 	        
+        @Override
+        protected String doInBackground(Integer... id) {
+            //TODO: usersList has to be updated here from the server
+        	Log.d(TAG, "Se executa doInBackground!");
+        	            	        	
+	    	int userId = id[0].intValue();
+	    	String messageForServer = 2 + " " + userId + "\n";
+	    	String serverResult = null;
+	    		    	
+	    	try {	    		
+	    		Socket clientSocket = new Socket(InetAddress.getByName("projects.rosedu.org"), 9000);
+				
+	    		BufferedWriter messageSender = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+	    		BufferedReader responseReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+				
+	    		messageSender.write(messageForServer);
+	    		messageSender.flush();
+	    		
+				serverResult = responseReader.readLine();
+				
+				clientSocket.close();
+			} catch (UnknownHostException e) {
+				Log.e(TAG, "Eroare la contactare server! " + e.getMessage());
+				e.printStackTrace();
+			} catch (IOException e) {
+				Log.e(TAG, "Eroare la conectare cu socketul! " + e.getMessage());
+				e.printStackTrace();
+			}
+            
+        	return serverResult;
+        }
+        
+        @Override
+        protected void onPostExecute(String result) {
+            super.onPostExecute(result);                       
+            Log.d(TAG, "Se executa onPostExecute!");
+            
+            if (result == null) {
+            	Log.d(TAG, "Nu am obtinut adresa utilizatorului de la server!");
+            	Toast.makeText(getActivity(), "Cannot retrieve the users address from server", Toast.LENGTH_LONG).show();
+            } else {
+            	String[] resultParts  = result.split(" ");
+            	
+            	int messageType = Integer.valueOf(resultParts[0]); 
+            	
+            	if (messageType == 2) {
+            		int friendId = Integer.valueOf(resultParts[1]);
+            			            		
+            		if (resultParts.length == 4) {	            			            				            				    			    
+            			List<UserInfo> friendList = MainActivity.getFriendsList();
+            			UserInfo ui = null;
+            			if ((ui = UserInfo.containsUser(friendList, friendId)) != null) {
+            				ui.setUserLocation(new LatLng(Double.parseDouble(resultParts[2]), Double.parseDouble(resultParts[3])));
+            				MainActivity.addToFriendsList(ui);
+            			}
+            		}
+            	}
+            }
+        }
+	}               
 }

@@ -1,5 +1,13 @@
 package com.example.rendezview;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,15 +18,17 @@ import android.app.Fragment;
 import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
-import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.gms.maps.model.LatLng;
 
 public class MainActivity extends Activity {
 
@@ -36,10 +46,16 @@ public class MainActivity extends Activity {
 	
 	public static List<UserInfo> mFriendsList = new ArrayList<UserInfo>();
 	
-	Bundle mBundle = null;
+	public static DatabaseHandler db;
 	
 	// Used for storing friends list set on addFriendFragment
-	public static synchronized void addToFriendsList(UserInfo friendInfo) {
+	public static synchronized void addToFriendsList(UserInfo friendInfo) {		
+		for (int i = 0; i < mFriendsList.size(); i++) {
+			if (mFriendsList.get(i).getUserName().equals(friendInfo.getUserName())) {
+				mFriendsList.remove(i);
+				break;
+			}
+		}
 		mFriendsList.add(friendInfo);
 	}
 	
@@ -104,12 +120,30 @@ public class MainActivity extends Activity {
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		mBundle = savedInstanceState;
+		super.onCreate(savedInstanceState);		
 		setContentView(R.layout.activity_main);				
 		
 		StartFragmentsTask startFragmentsTask = new StartFragmentsTask();	    		
 		startFragmentsTask.execute(savedInstanceState);							
+		
+		/*SharedPreferences initialPref = getSharedPreferences("INITIAL", 0);
+		boolean firstTimer = initialPref.getBoolean("INITIAL", false);
+		
+		if (!firstTimer) {
+			db = new DatabaseHandler(this);
+			
+			UserInfo ui = new UserInfo("Test Name", new LatLng(44,45), 12, 0);
+			db.addFriend(ui);
+			
+			SharedPreferences.Editor editorPref = initialPref.edit();
+	        editorPref.putBoolean("INITIAL", true);
+	        editorPref.commit();
+		} else {
+			db = new DatabaseHandler(this);
+			List<UserInfo> friendssss = db.getAllFriends();
+			if (friendssss.size() > 0)
+				Toast.makeText(this, friendssss.get(0).getUserName(), Toast.LENGTH_LONG).show();
+		}*/
 		
 		// Get friends from database
 		DatabaseHandler db = new DatabaseHandler(this);
@@ -133,19 +167,16 @@ public class MainActivity extends Activity {
 	public void locateUnlocateButtonHandler(View v) {
 		UserInfo friendInfo = (UserInfo)v.getTag();
 		
-//		if (friendInfo.button != null) {
-//			if (friendInfo.getLocated() == 0) {
-//				friendInfo.button.setText("Unlocate");
-//				friendInfo.locate();
-//			} else {
-//				friendInfo.button.setText("Locate");
-//				friendInfo.unlocate();
-//			}
-//		} else {
-//			Toast.makeText(this, "Welcome " + userInfo.getUserName(), Toast.LENGTH_SHORT).show();
-//		}
-	}
-	
+		if (friendInfo.locateFriendButton != null) {
+			if (friendInfo.getLocated() == 0) {
+				friendInfo.locate();
+				friendInfo.locateFriendButton.setText("Unlocate");				
+			} else {
+				friendInfo.unlocate();
+				friendInfo.locateFriendButton.setText("Locate");				
+			}
+		}
+	}		
 	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -156,38 +187,24 @@ public class MainActivity extends Activity {
 	
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-		/*switch (item.getItemId()) {
-		case R.id.menuitem_search:
-			Toast.makeText(this, getString(R.string.ui_menu_search),
-					Toast.LENGTH_SHORT).show();
-			return true;
-		case R.id.menuitem_send:
-			Toast.makeText(this, getString(R.string.ui_menu_send),
-					Toast.LENGTH_SHORT).show();
-			return true;
-		case R.id.menuitem_add:
-			Toast.makeText(this, getString(R.string.ui_menu_add),
-					Toast.LENGTH_SHORT).show();
-			return true;
+		switch (item.getItemId()) {
 		case R.id.menuitem_share:
-			Toast.makeText(this, getString(R.string.ui_menu_share),
+			Toast.makeText(this, "Thank you for sharing this app!",
 					Toast.LENGTH_SHORT).show();
 			return true;
 		case R.id.menuitem_feedback:
-			Toast.makeText(this, getString(R.string.ui_menu_feedback),
+			Toast.makeText(this, "Thank you for your feedback!",
 					Toast.LENGTH_SHORT).show();
 			return true;
 		case R.id.menuitem_about:
-			Toast.makeText(this, getString(R.string.ui_menu_about),
+			Toast.makeText(this, "Application name: RendezView\nAtuhors: Bianca Georgescu, Valentina Manea, Daniel Bican\nVersion:1.0",
 					Toast.LENGTH_SHORT).show();
 			return true;
-		case R.id.menuitem_quit:
-			Toast.makeText(this, getString(R.string.ui_menu_quit),
-					Toast.LENGTH_SHORT).show();
+		case R.id.menuitem_quit:			
 			finish(); // close the activity
-			return true;
+			return true;		
 		}
-*/		return false;
+		return false;
 	}
 	
 	@Override
@@ -211,6 +228,10 @@ public class MainActivity extends Activity {
 		for (int i = 0; i < friendsList.size(); i++) {
 			db.addFriend(friendsList.get(i));
 		}
+		
+		// Logout user from server
+		TryToLogoutUser tryToLogoutUser = new TryToLogoutUser();
+		tryToLogoutUser.execute(userInfo.getUserId());
 	}
 	
 	protected class StartFragmentsTask extends AsyncTask<Bundle, Void, Boolean> {
@@ -236,13 +257,60 @@ public class MainActivity extends Activity {
 					"Fragments loaded!",
 						Toast.LENGTH_SHORT).show();*/
 		}
-	}		
+	}
+	
+	// Class that does the background work
+		private class TryToLogoutUser extends AsyncTask<Integer, Void, String> {
+
+			private String TAG = "MainActivity.TryToLogoutUser";				       
+	                 	        
+	        @Override
+	        protected String doInBackground(Integer... id) {
+	        	Log.d(TAG, "Se executa doInBackground!");
+	        	            	        	
+		    	int userId = id[0].intValue();
+		    	String messageForServer = 3 + " " + userId + "\n";
+		    	String serverResult = null;
+		    		    	
+		    	try {	    		
+		    		Socket clientSocket = new Socket(InetAddress.getByName("projects.rosedu.org"), 9000);
+					
+		    		BufferedWriter messageSender = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+		    		BufferedReader responseReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+					
+		    		messageSender.write(messageForServer);
+		    		messageSender.flush();
+		    		
+					serverResult = responseReader.readLine();
+					
+					clientSocket.close();
+				} catch (UnknownHostException e) {
+					Log.e(TAG, "Eroare la contactare server! " + e.getMessage());
+					e.printStackTrace();
+				} catch (IOException e) {
+					Log.e(TAG, "Eroare la conectare cu socketul! " + e.getMessage());
+					e.printStackTrace();
+				}
+	            
+	        	return serverResult;
+	        }
+	        
+	        @Override
+	        protected void onPostExecute(String result) {
+	            super.onPostExecute(result);                       
+	            Log.d(TAG, "Se executa onPostExecute!");
+	            
+	            if (result == null) {
+	            	Log.d(TAG, "Utilizatorul nu a fost delogat din sistem!");
+	            	Toast.makeText(getApplicationContext(), "Cannot retrieve the users address from server", Toast.LENGTH_LONG).show();
+	            } 
+	        }
+		} 
 }
 
 // TabListenr class for managing user interaction with the ActionBar tabs. The
 // application context is passed in pass it in constructor, needed for the
 // toast.
-
 class MyTabsListener implements ActionBar.TabListener {
 	public Fragment fragment;
 	public Context context;
@@ -269,5 +337,5 @@ class MyTabsListener implements ActionBar.TabListener {
 	public void onTabUnselected(Tab tab, FragmentTransaction ft) {
 		//Toast.makeText(context, "Unselected!", Toast.LENGTH_SHORT).show();
 		ft.remove(fragment);
-	}	
+	}
 }

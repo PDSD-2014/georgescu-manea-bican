@@ -28,7 +28,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     private static final String KEY_NAME = "name";
     private static final String KEY_LAT = "latitude";
     private static final String KEY_LNG = "longitude";
-    private static final String KEY_LOCATED = "located";
+    private static final String KEY_LOCATED = "located";       
     
     public DatabaseHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -48,7 +48,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 //        // Drop older table if existed
 //        db.execSQL("DROP TABLE IF EXISTS " + TABLE_FRIENDS); 
-//        // Create tables again
+//        // Create tables again	
 //        onCreate(db);
     }
     

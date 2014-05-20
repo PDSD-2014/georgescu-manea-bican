@@ -35,9 +35,31 @@ public class LocateFriendListAdapter extends ArrayAdapter<UserInfo> {
 		
 		friendInfoHolder = new FriendInfoHolder();
 		friendInfoHolder.friendInfo = items.get(position);
+		friendInfoHolder.friendInfo.setPosition(position);
 		friendInfoHolder.locateUnlocateButton = (Button) row.findViewById(R.id.friendInfo_locate_id);
-//		friendInfoHolder.friendInfo.setButton(friendInfoHolder.locateUnlocateButton);
-		friendInfoHolder.locateUnlocateButton.setTag(friendInfoHolder.friendInfo);
+		friendInfoHolder.deleteItem = (Button) row.findViewById(R.id.friendInfo_remove_item);
+		
+		if (friendInfoHolder.friendInfo.getLocated() == 0)
+			friendInfoHolder.locateUnlocateButton.setText("Locate");
+		else 
+			friendInfoHolder.locateUnlocateButton.setText("Unlocate");
+		
+		friendInfoHolder.friendInfo.setButton(friendInfoHolder.locateUnlocateButton);		
+		
+		friendInfoHolder.locateUnlocateButton.setTag(friendInfoHolder.friendInfo);		
+		friendInfoHolder.deleteItem.setTag(friendInfoHolder.friendInfo);
+		
+		friendInfoHolder.deleteItem.setOnClickListener(new Button.OnClickListener() {
+            @Override
+            public void onClick(View view) {                
+            	UserInfo ui = (UserInfo) view.getTag();
+            	
+            	List<UserInfo> friendsList = MainActivity.getFriendsList();
+                UserInfo.removeFriend(friendsList, ui.getUserName());
+                                 
+                notifyDataSetChanged();
+            }
+        });
 		
 		friendInfoHolder.friendName = (TextView)row.findViewById(R.id.friendInfo_name_id);			
 		
@@ -52,5 +74,6 @@ public class LocateFriendListAdapter extends ArrayAdapter<UserInfo> {
 		UserInfo friendInfo;
 		TextView friendName;		
 		Button locateUnlocateButton;
+		Button deleteItem;
 	}	
 }

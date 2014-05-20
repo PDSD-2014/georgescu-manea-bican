@@ -12,6 +12,8 @@ public class UserInfo {
 	private LatLng userLatLng = null;
 	private int userId = -1;
 	private int located = 0;
+	public Button locateFriendButton = null;
+	private int position;
 	
 	public UserInfo(String name, LatLng latLng, int id, int located) {
 		this.userName = name;
@@ -19,7 +21,19 @@ public class UserInfo {
 		this.userId = id;
 		this.located = located;
 	}
-				
+	
+	public void setPosition(int pos) {
+		position = pos;
+	}
+	
+	public int getPosition() {
+		return position;
+	}
+	
+	public void setButton(Button b) {
+		locateFriendButton = b;
+	}	
+	
 	public UserInfo() {
 		
 	}
@@ -60,6 +74,17 @@ public class UserInfo {
 		this.userLatLng = latLng;
 	}
 	
+	public static void removeFriend(List<UserInfo> usersList, String userName) {
+		for (int i = 0; i < usersList.size(); i++) {
+			String name = usersList.get(i).getUserName();
+			
+			if (userName.equals(name)) {
+				usersList.remove(i);
+				break;
+			}
+		}
+	}
+	
 	public static UserInfo containsUser(List<UserInfo> usersList, String userName) {
 		UserInfo ui = null;
 		
@@ -73,7 +98,22 @@ public class UserInfo {
 		}
 		
 		return ui;
-	}	
+	}
+	
+	public static UserInfo containsUser(List<UserInfo> usersList, int userId) {
+		UserInfo ui = null;
+		
+		for (int i = 0; i < usersList.size(); i++) {
+			int id = usersList.get(i).getUserId();
+			
+			if (id == userId) {
+				ui = usersList.get(i);
+				break;
+			}
+		}
+		
+		return ui;
+	}
 	
 	public static ArrayList<String> getUsersNamesAsString(List<UserInfo> usersList) {
 		ArrayList<String> names = new ArrayList<String>();
