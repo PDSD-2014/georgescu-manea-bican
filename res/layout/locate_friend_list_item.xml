@@ -13,6 +13,7 @@
         android:scaleType="fitCenter"         
         android:textColor="#000000" />   
     <!-- android:background="#FF0800" -->
+    
     <TextView
         android:id="@+id/friendInfo_name_id"
         android:layout_width="0sp"

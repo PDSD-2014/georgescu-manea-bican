@@ -115,10 +115,15 @@ public class AddFriendFragment extends Fragment{
 			        mFriendsListButton.setEnabled(false);
 		    	} else {
 		    		List<UserInfo> friendsList = MainActivity.getFriendsList();
+		    		UserInfo friend = null;
 			    	// Check if the user is already friend with this user
-		    		if (UserInfo.containsUser(friendsList, friendName) != null) {
+		    		if ((friend = UserInfo.containsUser(friendsList, friendName)) != null) {
 			    		Toast.makeText(getActivity(), friendName.toString() + " is already your friend!", Toast.LENGTH_SHORT).show();
-			    		mLocateFriendButton.setEnabled(true);
+			    		if (friend != null && friend.getLocated() == 0) {
+			    			mLocateFriendButton.setEnabled(true);
+			    		} else {
+			    			mLocateFriendButton.setEnabled(false);
+			    		} 
 				        mFriendsListButton.setEnabled(true);
 			    	} else {			    					    				    					    				    				    					    	
 			    		// Add friend to the friends list from MainActivity in order to make it
