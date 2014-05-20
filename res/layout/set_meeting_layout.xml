@@ -17,7 +17,7 @@
         android:ems="10"
         android:fontFamily="sans-serif-condensed"
         android:text="Choose location"
-        android:textColor="@color/abc_search_url_text_holo"
+        android:textColor="#FF00FF"
         android:textStyle="bold" />
 
     <Button
@@ -80,7 +80,7 @@
         android:ems="10"
         android:fontFamily="sans-serif-condensed"
         android:text="Choose attendees"
-        android:textColor="@color/abc_search_url_text_holo"
+        android:textColor="#FF00FF"
         android:textStyle="bold" />
     
     <LinearLayout 

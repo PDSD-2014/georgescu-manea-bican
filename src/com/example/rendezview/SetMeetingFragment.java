@@ -3,13 +3,17 @@ package com.example.rendezview;
 
 //TODO   -  mechanism to always be listening for meeting requests
 
+import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import android.app.Fragment;
 import android.content.Context;
 import android.graphics.Color;
+import android.location.Geocoder;
+import android.location.Address;
 import android.os.AsyncTask;
 import android.os.AsyncTask.Status;
 import android.os.Bundle;
@@ -38,52 +42,49 @@ public class SetMeetingFragment extends Fragment {
 	
 	private AutoCompleteTextView mACTextView;
 	private ArrayAdapter mAdapter;
+	private AutoCompleteTextView mACTextViewLocation;
+	private ArrayAdapter mAdapterLocation;
 	
 	private Button mAddAttendeeButton;
 	private Button mSendInvitationButton;
 	private Button mSeeMeetingButton;
 	private Button mCancelMeetingButton;
 	int mCurCheckPosition = 0;
+	//coordinates of meeting location
+	// they will be set when choosing from location autocomplete list
+	private LatLng location = null;
 	
-	// TODO - this list will be populated by the async thread in background from server responses
 	private List<UserInfo> friendsList = new ArrayList<UserInfo>();
 	private List<String> meetingList = new ArrayList<String>();
 	// meeting attendees' ids to be sent to server
-	private List<Integer> meetingListIds = new ArrayList<Integer>();
-	
-	/*private void populateFriendList() {
-		friendList.clear();
-		usersList.add(new UserInfo("Bican Daniel", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Badarcea Mihai", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Bivol Calin", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Bolovan Dinu", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Georgescu Bianca", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Bican Andreea", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Manea Valentina", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Neagu Djuvara", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Tiberiu Berariu", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Mihai Stan", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Gino Iorgulescu", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Cristiana Enescu", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Oliver Twist", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Mama lui Stefan cel Mare", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Dimitrie Cantemir", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Dean Carnazes", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Veronica Micle", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Mihai Eminsecu", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Stanislav Milkovici", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Ioan Cuza", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Maria Plopeanu", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Goe Patitul", new LatLng(0,0), (long) 0));
-		usersList.add(new UserInfo("Elena Udrea", new LatLng(0,0), (long) 0));
-	}*/
-	
+	private List<Integer> attendeesIds = new ArrayList<Integer>();
+	private List<UserInfo> friendsInMeetingList = new ArrayList<UserInfo>();
 	
 	@SuppressWarnings("rawtypes")
 	private void setAdapterForACTV() {
 		//populateUsersList();
 		mAdapter = new ArrayAdapter(getActivity(), android.R.layout.simple_list_item_1, UserInfo.getUsersNamesAsString(MainActivity.getFriendsList()));
 		mACTextView.setAdapter(mAdapter);
+	}
+	
+	private void setAdapterForLocation() {
+		// TODO - probably should be executed on a different thread
+		Geocoder geoCoder =
+                new Geocoder(MainActivity.getContext(), Locale.getDefault());
+
+		List<Address> addresses;
+		try {
+			addresses = geoCoder.getFromLocationName(mACTextViewLocation.getText().toString(),5);
+			mAdapterLocation = new ArrayAdapter(getActivity(), android.R.layout.simple_list_item_1, addresses.toArray());
+			mACTextViewLocation.setAdapter(mAdapterLocation);
+			//for test
+			/*if (addresses.size() != 0)
+				Toast.makeText(getActivity(), addresses.size(), Toast.LENGTH_SHORT).show();
+			*/
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	@Override
@@ -105,7 +106,7 @@ public class SetMeetingFragment extends Fragment {
 			    !this.asyncTaskWeakRef.get().getStatus().equals(Status.FINISHED);
 	}	
 	
-	public void hideKeyboard(View view) {
+	public void hideKeyboard(View view, AutoCompleteTextView mACTextView) {
 		 InputMethodManager in = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
 		 in.hideSoftInputFromWindow(mACTextView.getWindowToken(), 0);
 	}	
@@ -116,19 +117,38 @@ public class SetMeetingFragment extends Fragment {
 		friendsList = MainActivity.getFriendsList();
 		setMeetingView = inflater.inflate(R.layout.set_meeting_layout, container, false);
 		setMeetingView.setBackgroundColor(Color.BLACK);
-		mACTextView = (AutoCompleteTextView) setMeetingView.findViewById(R.id.autoCompleteTextView1);		
+		mACTextView = (AutoCompleteTextView) setMeetingView.findViewById(R.id.autoCompleteTextView1);	
+		mACTextViewLocation = (AutoCompleteTextView) setMeetingView.findViewById(R.id.autoCompleteTextView2);
 		mACTextView.setThreshold(1);
+		mACTextViewLocation.setThreshold(1);
+		
 		
 		// Remove keyboard after user selects an element		
 		mACTextView.setOnItemClickListener(new OnItemClickListener() {
 			@Override
 			public void onItemClick(AdapterView<?> arg0, View arg1, int arg2, long arg3) {
-				hideKeyboard(arg1);
+				hideKeyboard(arg1, mACTextView);
 			}
 		});
-		
-		// Disable locate and friends list when searching a user in database
+
 		mACTextView.setOnTouchListener(new OnTouchListener() {
+			
+			@Override
+			
+			public boolean onTouch(View v, MotionEvent event) {
+				return false;
+			}
+		});		
+		
+		// Remove keyboard after user selects an element		
+		mACTextViewLocation.setOnItemClickListener(new OnItemClickListener() {
+				@Override
+				public void onItemClick(AdapterView<?> arg0, View arg1, int arg2, long arg3) {
+					hideKeyboard(arg1, mACTextViewLocation);
+				}
+		});
+		
+		mACTextViewLocation.setOnTouchListener(new OnTouchListener() {
 			
 			@Override
 			
@@ -136,9 +156,10 @@ public class SetMeetingFragment extends Fragment {
 			public boolean onTouch(View v, MotionEvent event) {
 				return false;
 			}
-		});			
+		});
 		
 		setAdapterForACTV();
+		setAdapterForLocation();
 		
 		mAddAttendeeButton = (Button) setMeetingView.findViewById(R.id.button1);
 		mSendInvitationButton = (Button) setMeetingView.findViewById(R.id.button2);
@@ -150,30 +171,30 @@ public class SetMeetingFragment extends Fragment {
 		    @Override
 		    public void onClick(View v) {
 		    	Editable friendName = mACTextView.getEditableText();
-		    	int friendId = -1;
+		    	UserInfo friend = null;
 		    	
-		    	for (UserInfo friend : friendsList){
-		    		if (friend.getUserName().equals(friendName.toString())){
-		    			friendId = friend.getUserId();
+		    	for (UserInfo fr : friendsList){
+		    		if (fr.getUserName().equals(friendName.toString())){
+		    			friend = fr;
 		    			break;
 		    		} 
 		    	}
 		    	
-		    	if (UserInfo.containsUser(friendsList, friendName.toString()) != null) {
-		    		Toast.makeText(getActivity(), " Please enter complete name!", Toast.LENGTH_SHORT).show();
+		    	if (friendName.toString().isEmpty()) {
+		    		Toast.makeText(getActivity(), "You must enter a name!", Toast.LENGTH_SHORT).show();
+		    	} else if (UserInfo.containsUser(friendsList, friendName.toString()) == null) {
+		    		Toast.makeText(getActivity(), friendName.toString() + " is not in your friend list!", Toast.LENGTH_SHORT).show();
 		    	} else {
 			    	if (meetingList.contains(friendName.toString())) {
 			    		Toast.makeText(getActivity(), friendName.toString() + " is already marked to join the meeting!", Toast.LENGTH_SHORT).show();
-			    		//mLocateFriendButton.setEnabled(true);
-				        //mFriendsListButton.setEnabled(true);
 			    	} else {	
 			    		// TODO - Alternative for getting id: get id from local sql
 			    		meetingList.add(friendName.toString());
-			    		meetingListIds.add(friendId);
+			    		friendsInMeetingList.add(friend);
 			    		mACTextView.setText("");
 			    		
 			    		
-			    		String allAttendees = "";
+			    		String allAttendees = "Attendees: ";
 			    		for (int i = 0; i < meetingList.size(); i++){
 			    			if (i == 0)
 			    				allAttendees = allAttendees + meetingList.get(i);
@@ -199,10 +220,22 @@ public class SetMeetingFragment extends Fragment {
 				//TODO Wait for acceptance
 				//TODO progress bar till all accept
 				
-				//you cannot add friends to teh meeting anymore, but you can see or cancel the meeting
-				mAddAttendeeButton.setEnabled(false);
-				mSeeMeetingButton.setEnabled(true);
-				mCancelMeetingButton.setEnabled(true);
+				//TODO check for address to be correct
+				
+				if (mACTextViewLocation.getText().toString().isEmpty()) {
+					Toast.makeText(getActivity(), "You must specify a location!", Toast.LENGTH_SHORT).show();
+				} else if (location == null){
+					Toast.makeText(getActivity(), "Not a valid location!", Toast.LENGTH_SHORT).show();
+				} else {
+					// populate attendesIds list -> for server message needed
+					for (UserInfo friend : friendsInMeetingList) {
+						attendeesIds.add(friend.getUserId());
+					}
+					//you cannot add friends to the meeting anymore, but you can see or cancel the meeting
+					mAddAttendeeButton.setEnabled(false);
+					mSeeMeetingButton.setEnabled(true);
+					mCancelMeetingButton.setEnabled(true);
+				}
 				
 			}
 		});
@@ -214,7 +247,11 @@ public class SetMeetingFragment extends Fragment {
 			@Override
 			public void onClick(View v) {					
 				getActivity().getActionBar().setSelectedNavigationItem(0);
-				
+				// mark located attribute for all attendees
+				// TODO!! should it be marked in friendsList from MainActivity instead
+				for (UserInfo friend : friendsInMeetingList) {
+					friend.locate();
+				}
 				//TODO  We should have a place to put information like
 				// estimated arriving time for each attendee
 				
@@ -229,11 +266,14 @@ public class SetMeetingFragment extends Fragment {
 				
 				//Get buttons to their initial state
 				meetingList.clear();
-				meetingListIds.clear();
+				attendeesIds.clear();
+				friendsInMeetingList.clear();
 				mAddAttendeeButton.setEnabled(true);
 				mSendInvitationButton.setEnabled(false);
 				mSeeMeetingButton.setEnabled(false);
 				mCancelMeetingButton.setEnabled(false);
+				
+				//TODO remove friends and location from map
 				
 			}
 		});
@@ -271,13 +311,15 @@ public class SetMeetingFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
-    	hideKeyboard(setMeetingView);
+    	hideKeyboard(setMeetingView, mACTextView);
+    	hideKeyboard(setMeetingView, mACTextViewLocation);
     	super.onDestroyView();    	        
     }
     
     @Override
     public void onDestroy() {
-    	hideKeyboard(setMeetingView);
+    	hideKeyboard(setMeetingView, mACTextView);
+    	hideKeyboard(setMeetingView, mACTextViewLocation);
     	super.onDestroy();    	        
     }
 	
@@ -292,8 +334,7 @@ public class SetMeetingFragment extends Fragment {
 
 		@Override
         protected Void doInBackground(Void... params) {
-            //TODO: usersList has to be updated here from the server
-            //populateUsersList();
+			
         	return null;
         }
 

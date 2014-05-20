@@ -13,13 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.app.Fragment;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.AsyncTask.Status;
 import android.os.Bundle;
-import android.text.Editable;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -117,7 +115,10 @@ public class AddFriendFragment extends Fragment{
 			    		Toast.makeText(getActivity(), friendName.toString() + " is already your friend!", Toast.LENGTH_SHORT).show();
 			    		mLocateFriendButton.setEnabled(true);
 				        mFriendsListButton.setEnabled(true);
-			    	} else {			    					    				    					    				    		
+			    	} else {			    					    				    					    				    				    					    	
+			    		// Add friend to the friends list from MainActivity in order to make it
+			    		// accesible for any fragment			    			    				
+	    				Toast.makeText(getActivity(), friendName.toString() + " has been added as your friend!", Toast.LENGTH_SHORT).show();
 			    		mLocateFriendButton.setEnabled(true);
 				        mFriendsListButton.setEnabled(true);			    					    	
 			    	}

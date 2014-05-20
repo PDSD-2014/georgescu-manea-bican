@@ -30,6 +30,7 @@ public class MainActivity extends Activity {
 	public static Fragment mLocateFriendFragment;
 	public static Fragment mSetMeetingFragment;	
 	public static Fragment mGoogleMapFragment;	
+	private static Context sContext;
 	
 	public static UserInfo userInfo = new UserInfo();
 	
@@ -56,7 +57,11 @@ public class MainActivity extends Activity {
 	
 	public static synchronized UserInfo getUserInfo() {
 		return userInfo; 
-	}	
+	}
+	
+	public static synchronized Context getContext() {
+		return sContext;
+	}
 	
 	private boolean createActionBar() {		
 		
@@ -113,6 +118,7 @@ public class MainActivity extends Activity {
 		
 		Intent loginIntent = new Intent(getApplicationContext(), LoginActivity.class);
         startActivityForResult(loginIntent, 0);
+        sContext = getApplicationContext();
 	}	
 
 	protected void onActivityResult(int requestCode, int resultCode,
