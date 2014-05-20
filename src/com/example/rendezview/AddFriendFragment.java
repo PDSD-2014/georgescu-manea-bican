@@ -18,7 +18,6 @@ import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.AsyncTask.Status;
 import android.os.Bundle;
-import android.text.Editable;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -50,6 +49,8 @@ public class AddFriendFragment extends Fragment{
 	private Button mLocateFriendButton;
 	private Button mFriendsListButton;
 	
+	private UserInfo friendInfo = null;
+	
 	// TODO - this list will be populated by the async thred in background from server responses
 	private List<UserInfo> usersList = new ArrayList<UserInfo>();		
 	
@@ -60,7 +61,7 @@ public class AddFriendFragment extends Fragment{
 		if (usersList.size() == 0) {
 			int userId = MainActivity.getUserInfo().getUserId();
     		if (userId != -1)
-    			startNewAsyncTask(userId);	
+    			startNewAsyncTask(6, userId);	
 		}
 	}	 
 	
@@ -102,9 +103,8 @@ public class AddFriendFragment extends Fragment{
 		    @Override
 		    public void onClick(View v) {
 		    	String friendName = mACTextView.getEditableText().toString();
-		    	
-		    	UserInfo ui = null;
-		    	if ((ui = UserInfo.containsUser(usersList, friendName)) == null) {
+		    			    	
+		    	if ((friendInfo = UserInfo.containsUser(usersList, friendName)) == null) {
 		    		Toast.makeText(getActivity(), " Please enter complete name!", Toast.LENGTH_SHORT).show();
 		    		mLocateFriendButton.setEnabled(false);
 			        mFriendsListButton.setEnabled(false);
@@ -115,10 +115,10 @@ public class AddFriendFragment extends Fragment{
 			    		Toast.makeText(getActivity(), friendName.toString() + " is already your friend!", Toast.LENGTH_SHORT).show();
 			    		mLocateFriendButton.setEnabled(true);
 				        mFriendsListButton.setEnabled(true);
-			    	} else {			    					    				    					    	
+			    	} else {			    					    				    					    				    				    					    	
 			    		// Add friend to the friends list from MainActivity in order to make it
-			    		// accesible for any fragment			    		
-	    				MainActivity.addToFriendsList(ui);			    			
+			    		// accesible for any fragment			    			    				
+	    				Toast.makeText(getActivity(), friendName.toString() + " has been added as your friend!", Toast.LENGTH_SHORT).show();
 			    		mLocateFriendButton.setEnabled(true);
 				        mFriendsListButton.setEnabled(true);			    					    	
 			    	}
@@ -129,7 +129,7 @@ public class AddFriendFragment extends Fragment{
 		// If "Friends List" button is pressed then change to find friends tab
 		mFriendsListButton.setOnClickListener(new OnClickListener() {			
 			@Override
-			public void onClick(View v) {				
+			public void onClick(View v) {												
 				getActivity().getActionBar().setSelectedNavigationItem(2);
 			}
 		});
@@ -137,8 +137,14 @@ public class AddFriendFragment extends Fragment{
 		//If "Locate Friend" button is pressed then change to map tab
 		mLocateFriendButton.setOnClickListener(new OnClickListener() {			
 			@Override
-			public void onClick(View v) {				
-				getActivity().getActionBar().setSelectedNavigationItem(0);
+			public void onClick(View v) {								
+				// Put located field on 1
+				friendInfo.locate();
+				// Call server in order to get coordinates of friends						
+				startNewAsyncTask(2, friendInfo.getUserId());
+				
+//				Toast.makeText(getActivity(), "Friend id " + friendInfo.getUserId(), Toast.LENGTH_LONG).show();				
+//				getActivity().getActionBar().setSelectedNavigationItem(0);
 			}
 		});
 		
@@ -173,10 +179,10 @@ public class AddFriendFragment extends Fragment{
     }
 	
     // AsyncTask methods.    
-    private void startNewAsyncTask(int userId) {
+    private void startNewAsyncTask(int messageType, int userId) {
     	TryToRetrieveUsersList asyncTask = new TryToRetrieveUsersList(this);
 		this.asyncTaskWeakRef = new WeakReference<TryToRetrieveUsersList>(asyncTask);
-		asyncTask.execute(userId);		
+		asyncTask.execute(messageType, userId);		
 	}
 	
 	private boolean isAsyncTaskPendingOrRunning() {
@@ -216,7 +222,7 @@ public class AddFriendFragment extends Fragment{
 //		usersList.add(new UserInfo("Maria Plopeanu", new LatLng(0,0), (long) 0, 0));
 //		usersList.add(new UserInfo("Goe Patitul", new LatLng(0,0), (long) 0, 0));
 //		usersList.add(new UserInfo("Elena Udrea", new LatLng(0,0), (long) 0, 0));
-	}
+	}      
     
     // Class that does the background work
 	private class TryToRetrieveUsersList extends AsyncTask<Integer, Void, String> {
@@ -234,9 +240,10 @@ public class AddFriendFragment extends Fragment{
             //TODO: usersList has to be updated here from the server
         	Log.d(TAG, "Se executa doInBackground!");
         	            
-	    	int userId = id[0].intValue();
-	    	String messageForServer = "6" + " " + userId + "\n";
-	    	String serverResult = null;	    	
+        	int messageType = id[0].intValue();
+	    	int userId = id[1].intValue();
+	    	String messageForServer = messageType + " " + userId + "\n";
+	    	String serverResult = null;
 	    		    	
 	    	try {	    		
 	    		Socket clientSocket = new Socket(InetAddress.getByName("projects.rosedu.org"), 9000);
@@ -272,7 +279,10 @@ public class AddFriendFragment extends Fragment{
             	//TODO: treat the result
             	String[] resultParts  = result.split(" ");
             	
-            	if (Integer.valueOf(resultParts[0]) == 6) {
+            	int messageType = Integer.valueOf(resultParts[0]); 
+            	
+            	// Response for request type 3: ask for the list of online users 
+            	if (messageType == 6) {
 	            	int numberOfUsers = Integer.valueOf(resultParts[1]);
 	            	if (numberOfUsers == 0) {
 	            		Toast.makeText(getActivity(), "Sorry but there is no other user online", Toast.LENGTH_LONG).show();
@@ -287,11 +297,25 @@ public class AddFriendFragment extends Fragment{
 	            		if (!mLocateFriendButton.isEnabled()) {
 		            		setAdapterForACTV();		            		
 		            	}
-	            	}
+	            	}	            	
+            	} // Response for request type 2: ask for a friend coordinates 
+            	else if (messageType == 2) {
+            		int friendId = Integer.valueOf(resultParts[1]);
+            		
+            		if (friendId == friendInfo.getUserId()) {
+            			if (resultParts.length == 4) {
+//            				Toast.makeText(getActivity(), "Match: " + Double.parseDouble(resultParts[2]) + " " + Double.parseDouble(resultParts[3]), Toast.LENGTH_LONG).show();
+            				friendInfo.setUserLocation(new LatLng(Double.parseDouble(resultParts[2]), Double.parseDouble(resultParts[3])));
+    			    		// Add friend to the friends list from MainActivity in order to make it
+    			    		// accesible for any fragment			    					    	
+    			    		MainActivity.addToFriendsList(friendInfo);    			    		
+    			    		friendInfo = null;
+            			}
+            		}
             	}
             }
-        }
-        
-        
-    }	
+        }                
+    }
+	
+	
 }

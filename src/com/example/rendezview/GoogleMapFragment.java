@@ -42,15 +42,12 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
     private String PROVIDER_PASSIVE = "passive";
     
     // 30 s location update interval
-    private int UPDATE_LOCATION_TIMEOUT = 60 * 1000;
+    private int UPDATE_LOCATION_TIMEOUT = 15 * 1000;
     // 0 meters location update
     private int UPDATE_LOCATION_DISTANCE = 0;
     
     private LatLng defaultLatLng = new LatLng(44.438929, 26.104165);
-    
-    // This should be equal to the name of the user that is logged on this phone
-    private String markerTitle = "Bican Daniel";
-    
+        
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View inflatedView = inflater.inflate(R.layout.google_map_layout, container, false);    	    	    
@@ -61,6 +58,7 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
         MapsInitializer.initialize(getActivity());              
         
         setUpMapIfNeeded(inflatedView);
+        // Show markers on map.
         setUpMap();              
         
         return inflatedView;
@@ -117,19 +115,42 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
     	}
     }
     
+    private void setFriendsOnMap() {
+    	List<UserInfo> friendsList = MainActivity.getFriendsList();
+    	
+    	// Show all friends on the map
+    	if (friendsList.size() > 0) {
+    		for (UserInfo friend : friendsList) {
+//    			Toast.makeText(getActivity(), friendsList.get(0).getUserName(), Toast.LENGTH_LONG).show();
+    			if (friend.getLocated() == 1) {
+    				LatLng latLng = friend.getUserLocation();    			    			    	
+    				setMarkerOnMapWithoutMovingCamera(latLng.latitude, latLng.longitude, friend.getUserName());
+    			}
+    		}
+    	}
+    }
+    
     private void setUpMap() {    	    	    	                      
     	Location userLocation = getUserLocation();
     	
     	LatLng userLatLng = null;
     	
+    	String uiName = MainActivity.getUserInfo().getUserName(); 
+    	
+    	if (uiName == null)
+    		uiName = "";
+    	
     	if (userLocation != null) {
     		userLatLng = new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
-    		setMarkerOnMap(userLatLng.latitude, userLatLng.longitude);    		
+    		setMarkerOnMap(userLatLng.latitude, userLatLng.longitude, uiName);    		
         	sendLocationToServer(userLatLng.latitude, userLatLng.longitude);
-    	}    	    
-    }   
+    	}
+    	
+    	setFriendsOnMap();
+    }          
     
-    private void setMarkerOnMap(double latitude, double longitude) {
+    // Only set marker on map. Do not move the camera.
+    private void setMarkerOnMapWithoutMovingCamera(double latitude, double longitude, String markerTitle) {
     	LatLng userLatLng = new LatLng(latitude, longitude);
     	
     	MarkerOptions userMarkerOptions = new MarkerOptions();
@@ -138,7 +159,19 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
     	
     	Marker userMarker = mMap.addMarker(userMarkerOptions);
     	userMarker.showInfoWindow();
-    	mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 15));      
+    }
+
+    // Set marker on map and move the camera.
+    private void setMarkerOnMap(double latitude, double longitude, String markerTitle) {
+    	LatLng userLatLng = new LatLng(latitude, longitude);
+    	
+    	MarkerOptions userMarkerOptions = new MarkerOptions();
+    	userMarkerOptions.position(userLatLng);
+    	userMarkerOptions.title(markerTitle);
+    	
+    	Marker userMarker = mMap.addMarker(userMarkerOptions);
+    	userMarker.showInfoWindow();
+    	mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 12));      
     }
     
     @Override
@@ -168,11 +201,17 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
 	@Override
 	public void onLocationChanged(Location location) {		
 		mMap.clear();		
-		setMarkerOnMap(location.getLatitude(), location.getLongitude());
-		sendLocationToServer(location.getLatitude(), location.getLongitude());
-		// TODO - retrieve from local list the coordinates of friends 
+		
+		String uiName = MainActivity.getUserInfo().getUserName(); 
+		
+		if (uiName != null) {
+			setMarkerOnMap(location.getLatitude(), location.getLongitude(), uiName);
+			sendLocationToServer(location.getLatitude(), location.getLongitude());
+		}
+		
+		setFriendsOnMap();
 	}
-
+																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																													
 	@Override
 	public void onProviderDisabled(String arg0) {
 		
