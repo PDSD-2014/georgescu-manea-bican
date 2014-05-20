@@ -294,6 +294,183 @@ public class Server
 		return sbuf.toString();
 	}
 
+	public String meetingManagement(String message)
+	{
+		String reply = null;
+		char code = message.charAt(2);
+
+		switch (code) {
+			case '0': reply = addMeeting(message);
+				  break;
+			case '2': reply = sendMeetingInfo(message);
+				  break;
+			case '5': cancelMeeting(message);
+				  break;
+		}
+
+		return reply;
+	}
+
+	public String addMeeting(String message)
+	{
+		Scanner sc = new Scanner(message);
+		StringBuffer sbuf = new StringBuffer();
+		StringBuffer participants = new StringBuffer();
+		String locName;
+		float latitude, longitude;
+		int id = 1, i, n;
+
+		sbuf.append("7 1 ");
+
+		sc.nextInt();
+		sc.nextInt();
+
+		/* Append initiator's id to participants string. */
+		participants.append(sc.nextInt() + " ");
+
+		locName = sc.next();
+
+		latitude = sc.nextFloat();
+		longitude = sc.nextFloat();
+
+		n = sc.nextInt();
+		/* Get participants' ids. */
+		for (i = 0; i < n; i++)
+			participants.append(sc.nextInt() + " ");
+
+		n++;
+
+		Connection c = null;
+		Statement stmt = null;
+		try {
+			Class.forName("org.sqlite.JDBC");
+			c = DriverManager.getConnection("jdbc:sqlite:test.db");
+			stmt = c.createStatement();
+
+			String sql = "SELECT meeting_id FROM meeting;";
+
+			ResultSet rs = stmt.executeQuery(sql);
+
+			while (rs.next())
+				id++;
+
+			rs.close();
+
+			sql = "INSERT INTO meeting VALUES " +
+			      "(" + id + ", " + "'" + locName + "'" + ", " +
+			      latitude + ", " + longitude + ", " + n + ", " +
+			      "'" + participants.toString() + "');";
+
+			stmt.executeUpdate(sql);
+
+			logger.info("Added new meeting: " + id + " " + locName);
+
+			stmt.close();
+			c.close();
+		} catch (Exception e) {
+			logger.severe("Database error: " + e.getMessage());
+		}
+
+		sbuf.append(id + "\n");
+
+		return sbuf.toString();
+	}
+
+	public String sendMeetingInfo(String message)
+	{
+		Scanner sc = new Scanner(message);
+		Scanner scParticipants;
+		String participants;
+		StringBuffer sbuf = new StringBuffer();
+		StringBuffer info = null;
+		int id;
+		boolean found = false;
+
+		sbuf.append("7 ");
+
+		sc.nextInt();
+		sc.nextInt();
+		id = sc.nextInt();
+
+		Connection c = null;
+		Statement stmt = null;
+		try {
+			Class.forName("org.sqlite.JDBC");
+			c = DriverManager.getConnection("jdbc:sqlite:test.db");
+			stmt = c.createStatement();
+
+			String sql = "SELECT meeting_id, name, latitude, longitude, " +
+				     "part_num, part_id FROM meeting;";
+
+			ResultSet rs = stmt.executeQuery(sql);
+
+			while (rs.next()) {
+				participants = rs.getString("part_id");
+				scParticipants = new Scanner(participants);
+
+				while (scParticipants.hasNextInt()) {
+					if (scParticipants.nextInt() == id) {
+						found = true;
+						break;
+					}
+				}
+
+				if (found) {
+					info = new StringBuffer();
+					info.append("3 ");
+					info.append(rs.getString("name") + " ");
+					info.append(rs.getFloat("latitude") + " " +
+						    rs.getFloat("longitude") + " ");
+					info.append(rs.getInt("part_num") + " ");
+					info.append(rs.getString("part_id"));
+					info.append("\n");
+				}
+			}
+
+			rs.close();
+
+			stmt.close();
+			c.close();
+		} catch (Exception e) {
+			logger.severe("Database error: " + e.getMessage());
+		}
+
+		if (found)
+			sbuf.append(info.toString());
+		else
+			sbuf.append("4\n");
+
+		logger.info("Sent meeting info: " + sbuf.toString());
+
+		return sbuf.toString();
+	}
+
+	public void cancelMeeting(String message)
+	{
+		Scanner sc = new Scanner(message);
+		StringBuffer sbuf = new StringBuffer();
+		int id;
+
+		sc.nextInt();
+		sc.nextInt();
+		id = sc.nextInt();
+
+		Connection c = null;
+		Statement stmt = null;
+		try {
+			Class.forName("org.sqlite.JDBC");
+			c = DriverManager.getConnection("jdbc:sqlite:test.db");
+			stmt = c.createStatement();
+
+			String sql = "DELETE from meeting WHERE meeting_id = " + id + ";";
+
+			stmt.executeUpdate(sql);
+
+		} catch (Exception e) {
+			logger.severe("Database error: " + e.getMessage());
+		}
+	}
+
 	public static void main( String args[] )
 	{
 		Server server = new Server();
@@ -366,6 +543,8 @@ public class Server
 					case '5': response = server.registerNewUser(request);
 						  break;
 					case '6': response = server.listClients(request);
+						  break;
+					case '7': response = server.meetingManagement(request);
 						  break;
 					default: continue;
 				}
