@@ -186,6 +186,12 @@ public class MainActivity extends Activity {
 	}	
 	
 	@Override
+	public void onBackPressed() {
+		// Do nothing
+		Toast.makeText(this, "Please use the menu to sign out!", Toast.LENGTH_LONG).show();
+	}	
+	
+	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch (item.getItemId()) {
 		case R.id.menuitem_share:

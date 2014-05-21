@@ -11,16 +11,22 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
+import android.app.Activity;
 import android.app.Fragment;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewGroup.LayoutParams;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdate;
@@ -28,6 +34,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.MapsInitializer;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -35,7 +42,9 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 public class GoogleMapFragment extends Fragment implements android.location.LocationListener {
 	
-    private MapView mMapView;
+    private String TAG = "GoogleMapFragment";
+	
+	private MapView mMapView;
     private GoogleMap mMap;
     private LocationManager mLocationManager;      
    
@@ -46,18 +55,27 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
     // 30 s location update interval
     private int UPDATE_LOCATION_TIMEOUT = 10 * 1000;
     // 0 meters location update
-    private int UPDATE_LOCATION_DISTANCE = 10;
-           
-    private float cameraZoom = 15;
+    private int UPDATE_LOCATION_DISTANCE = 0;             
     
     private List<Marker> markerList = new ArrayList<Marker>();
     
     private int widthPixels, heightPixels;
-        
+    
+    private String WAITING_FOR_SERVER = "Waiting ...";          
+    
+    private float cameraZoom = 15;
+    
+    private int numberOfFriends = 0;
+    
+    private Location oldLocation;
+    private List<UserInfo> oldFriendList = MainActivity.getFriendsList();
+    
+    private int firstTime = 0;
+    
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View inflatedView = inflater.inflate(R.layout.google_map_layout, container, false);    	    	    
-    		
+    	
         mMapView = (MapView) inflatedView.findViewById(R.id.map);        
         mMapView.onCreate(savedInstanceState);
         
@@ -68,6 +86,7 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
         // Show markers on map.
         clearMap();
         setUserOnMap();
+        getFriendsLocations();
         setFriendsOnMap();
         setCamera();
         
@@ -140,9 +159,7 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
     	}
     }
     
-    private void setFriendsOnMap() {
-    	getFriendsLocations();
-    	
+    private void setFriendsOnMap() {    	    	
     	List<UserInfo> friendsList = MainActivity.getFriendsList();
     	
     	// Show all friends on the map
@@ -164,13 +181,15 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
 	    	    builder.include(marker.getPosition());
 	    	}
 	    	LatLngBounds bounds = builder.build();
-	    	cu = CameraUpdateFactory.newLatLngBounds(bounds, widthPixels, heightPixels, 20);	    	
-    	} else if (markerList.size() == 1){
-    		cu = CameraUpdateFactory.newLatLngZoom(markerList.get(0).getPosition(), 20);
-    	}
+	    	cu = CameraUpdateFactory.newLatLngBounds(bounds, widthPixels, heightPixels, 50);	    		    
+    	}     	
     	
-    	if (cu != null)
-    		mMap.animateCamera(cu);
+    	if (cu != null) {
+    		mMap.moveCamera(cu);
+    	}
+//    	else {
+//    		mMap.animateCamera(CameraUpdateFactory.zoomTo(cameraZoom));
+//    	}
     }
     
     private void setUserOnMap() {    	    	    	                      
@@ -180,8 +199,10 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
     	
     	String uiName = MainActivity.getUserInfo().getUserName(); 
     	
-    	if (uiName == null)
-    		uiName = "Waiting for server...";
+    	if (uiName == null) {
+    		oldLocation = userLocation;
+    		uiName = WAITING_FOR_SERVER;    	
+    	}
     	
     	if (userLocation != null) {
     		userLatLng = new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
@@ -189,33 +210,74 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
         	sendLocationToServer(userLatLng.latitude, userLatLng.longitude);
     	}    	    
     }          
-    
-//    // Only set marker on map. Do not move the camera.
-//    private void setMarkerOnMapWithoutMovingCamera(double latitude, double longitude, String markerTitle) {
-//    	LatLng userLatLng = new LatLng(latitude, longitude);
-//    	
-//    	MarkerOptions userMarkerOptions = new MarkerOptions();
-//    	userMarkerOptions.position(userLatLng);
-//    	userMarkerOptions.title(markerTitle);
-//    	
-//    	Marker userMarker = mMap.addMarker(userMarkerOptions);
-//    	userMarker.showInfoWindow();    	
-//    	markerList.add(userMarker);
-//    }
 
+    public String adaptUserNameToMarker(String userName) {
+    	String[] nameParts = userName.split(" ");
+    	String newName = "";
+    	
+    	for (int i = 0; i < nameParts.length; i++) {
+    		if (i != nameParts.length-1) {
+    			newName += nameParts[i] + "\n";
+    		} else { 
+    			newName += nameParts[i];
+    		}
+    	}
+    	
+    	return newName;
+    }
+    
     // Set marker on map and move the camera.
     private void setMarkerOnMap(double latitude, double longitude, String markerTitle) {
-    	LatLng userLatLng = new LatLng(latitude, longitude);
+    	LatLng userLatLng = new LatLng(latitude, longitude);    	
     	
-    	MarkerOptions userMarkerOptions = new MarkerOptions();
+    	/*MarkerOptions userMarkerOptions = new MarkerOptions();
     	userMarkerOptions.position(userLatLng);
-    	userMarkerOptions.title(markerTitle);
+    	userMarkerOptions.title(markerTitle);    	
+    	userMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));*/
     	
-    	Marker userMarker = mMap.addMarker(userMarkerOptions);
-    	userMarker.showInfoWindow();
-    	markerList.add(userMarker);
-//    	mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, cameraZoom));      
+    	MarkerOptions userMarkerOptions = createMarkerOptions(adaptUserNameToMarker(markerTitle), UserInfo.FRIEND, userLatLng);    
+    	if (userMarkerOptions != null) { 
+    		Marker userMarker = mMap.addMarker(userMarkerOptions);    		
+    		markerList.add(userMarker);
+    	} else {
+    		Log.e(TAG, "Nu am putut pune marker ul pe harta!");
+    	}
     }
+    
+    /*
+     * Custom marker methods
+     */
+    public MarkerOptions createMarkerOptions(String markerTitle, int markerType, LatLng markerLatLng) {
+    	MarkerOptions mo = null;
+    	
+    	if (getActivity() != null) {
+	    	View marker = ((LayoutInflater) getActivity().getSystemService(Context.LAYOUT_INFLATER_SERVICE)).inflate(R.layout.custom_marker_layout, null);
+			TextView numTxt = (TextView) marker.findViewById(R.id.marker_num_txt);
+			numTxt.setText(markerTitle);		
+	 
+			mo = new MarkerOptions()
+			.position(markerLatLng)		
+			.icon(BitmapDescriptorFactory.fromBitmap(createDrawableFromView(getActivity(), marker)));
+    	}
+		
+		return mo;
+    }
+    
+    
+    public static Bitmap createDrawableFromView(Context context, View view) {
+		DisplayMetrics displayMetrics = new DisplayMetrics();		
+		((Activity) context).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+		view.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+		view.measure(displayMetrics.widthPixels, displayMetrics.heightPixels);
+		view.layout(0, 0, displayMetrics.widthPixels, displayMetrics.heightPixels);
+		view.buildDrawingCache();
+		Bitmap bitmap = Bitmap.createBitmap(view.getMeasuredWidth(), view.getMeasuredHeight(), Bitmap.Config.ARGB_8888);
+ 
+		Canvas canvas = new Canvas(bitmap);
+		view.draw(canvas);
+ 
+		return bitmap;
+	}
     
     @Override
     public void onResume() {
@@ -241,26 +303,75 @@ public class GoogleMapFragment extends Fragment implements android.location.Loca
 		mMapView.onLowMemory();
 	}
     
-    private void clearMap() {
-    	cameraZoom = mMap.getCameraPosition().zoom;
+    private void clearMap() {    	    	
+    	cameraZoom = mMap.getCameraPosition().zoom; 
     	mMap.clear();
 		markerList.clear();
     }
 
+    public boolean hasFriendChangedLocation() {
+    	boolean returnFlag = false;
+    	
+    	List<UserInfo> friendList = MainActivity.getFriendsList();
+    	
+    	UserInfo ui1, ui2; 
+    	
+    	if (friendList.size() == 0) {
+    		returnFlag = false;
+    	} else if (friendList.size() != oldFriendList.size()) { 
+    		returnFlag = true;
+    	} else {
+	    	for (int i = 0; i < friendList.size(); i++) {
+	    		if ((ui1 = UserInfo.containsUser(friendList, friendList.get(i).getUserId())) != null &&
+	    			(ui2 = UserInfo.containsUser(oldFriendList, friendList.get(i).getUserId())) != null) {
+	    			
+	    			double lat1 = Math.round(ui1.getUserLocation().latitude *1000.000) / 1000.000;
+	    			double lat2 = Math.round(oldLocation.getLatitude() *1000.000) / 1000.000;
+	    			double lon1 = Math.round(ui1.getUserLocation().longitude *1000.000) / 1000.000;
+	    			double lon2 = Math.round(ui2.getUserLocation().longitude *1000.000) / 1000.000;
+	    			
+	    			if ((lat1 != lat2) && (lon1 != lon2)) {
+	    				returnFlag = true;
+	    				firstTime = 0;
+	    			}
+	    		}
+	    	}
+    	}
+     	
+    	return returnFlag;
+    }
+    
 	@Override
 	public void onLocationChanged(Location location) {				
-		clearMap();
+		getFriendsLocations();
 		
-		String uiName = MainActivity.getUserInfo().getUserName(); 
+		double lat1 = Math.round(location.getLatitude() *1000.000) / 1000.000;
+		double lon1 = Math.round(oldLocation.getLatitude() *1000.000) / 1000.000;
+		double lat2 = Math.round(location.getLongitude() *1000.000) / 1000.000;
+		double lon2 = Math.round(oldLocation.getLongitude() *1000.000) / 1000.000;
 		
-		if (uiName == null)
-    		uiName = "Waiting for server...";
-				
-		setMarkerOnMap(location.getLatitude(), location.getLongitude(), uiName);
-		sendLocationToServer(location.getLatitude(), location.getLongitude());		
+		if (((lat1 != lon1) && (lat2 != lon2))
+				|| hasFriendChangedLocation()
+				|| firstTime < 5) {
+			
+			clearMap();
+			
+			String uiName = MainActivity.getUserInfo().getUserName(); 
+			
+			if (uiName == null)
+	    		uiName = WAITING_FOR_SERVER;
+					
+			setMarkerOnMap(location.getLatitude(), location.getLongitude(), adaptUserNameToMarker(uiName));
+			sendLocationToServer(location.getLatitude(), location.getLongitude());		
 				        
-        setFriendsOnMap();
-        setCamera();		
+	        setFriendsOnMap();
+	        setCamera();
+	        
+	        oldLocation = location;
+	        oldFriendList = MainActivity.getFriendsList();
+	        
+	        firstTime++;
+		}
 	}
 																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																													
 	@Override

@@ -23,7 +23,7 @@
         android:id="@+id/menuitem_quit"
         android:icon="@android:drawable/ic_menu_close_clear_cancel"
         android:showAsAction="ifRoom"
-        android:title="Quit">
+        android:title="Sign out">
     </item>
 
 </menu>

@@ -14,12 +14,24 @@ public class UserInfo {
 	private int located = 0;
 	public Button locateFriendButton = null;
 	private int position;
+	private int markerType = FRIEND; 
+	
+	public static int FRIEND = 100;
+	public static int LOCATION = 200;
 	
 	public UserInfo(String name, LatLng latLng, int id, int located) {
 		this.userName = name;
 		this.userLatLng = latLng;
 		this.userId = id;
 		this.located = located;
+	}
+	
+	public void setMarkerType(int type) {
+		markerType = type;
+	}
+	
+	public int getMarkerType() {
+		return markerType;
 	}
 	
 	public void setPosition(int pos) {
