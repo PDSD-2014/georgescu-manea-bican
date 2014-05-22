@@ -1,23 +1,27 @@
 package com.example.rendezview;
 
-
-//TODO   -  mechanism to always be listening for meeting requests
-
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import android.app.Fragment;
 import android.content.Context;
 import android.graphics.Color;
-import android.location.Geocoder;
-import android.location.Address;
 import android.os.AsyncTask;
 import android.os.AsyncTask.Status;
 import android.os.Bundle;
 import android.text.Editable;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -30,6 +34,8 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
+import android.widget.Filter;
+import android.widget.Filterable;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.model.LatLng;
@@ -43,7 +49,7 @@ public class SetMeetingFragment extends Fragment {
 	private AutoCompleteTextView mACTextView;
 	private ArrayAdapter mAdapter;
 	private AutoCompleteTextView mACTextViewLocation;
-	private ArrayAdapter mAdapterLocation;
+	private PlacesAutoCompleteAdapter mAdapterLocation;
 	
 	private Button mAddAttendeeButton;
 	private Button mSendInvitationButton;
@@ -59,32 +65,117 @@ public class SetMeetingFragment extends Fragment {
 	// meeting attendees' ids to be sent to server
 	private List<Integer> attendeesIds = new ArrayList<Integer>();
 	private List<UserInfo> friendsInMeetingList = new ArrayList<UserInfo>();
+	private static final String LOG_TAG = "ExampleApp";
+
+	private static final String PLACES_API_BASE = "https://maps.googleapis.com/maps/api/place";
+	private static final String TYPE_AUTOCOMPLETE = "/autocomplete";
+	private static final String OUT_JSON = "/json";
+	
+	private static final String API_KEY = "YOUR_API_KEY";
+	
+	private ArrayList<String> autocomplete(String input) {
+	    ArrayList<String> resultList = null;
+	
+	    HttpURLConnection conn = null;
+	    StringBuilder jsonResults = new StringBuilder();
+	    try {
+	        StringBuilder sb = new StringBuilder(PLACES_API_BASE + TYPE_AUTOCOMPLETE + OUT_JSON);
+	        sb.append("?sensor=false&key=" + API_KEY);
+	        sb.append("&components=country:uk");
+	        sb.append("&input=" + URLEncoder.encode(input, "utf8"));
+	
+	        URL url = new URL(sb.toString());
+	        conn = (HttpURLConnection) url.openConnection();
+	        InputStreamReader in = new InputStreamReader(conn.getInputStream());
+	
+	        // Load the results into a StringBuilder
+	        int read;
+	        char[] buff = new char[1024];
+	        while ((read = in.read(buff)) != -1) {
+	            jsonResults.append(buff, 0, read);
+	        }
+	    } catch (MalformedURLException e) {
+	        Log.e(LOG_TAG, "Error processing Places API URL", e);
+	        return resultList;
+	    } catch (IOException e) {
+	        Log.e(LOG_TAG, "Error connecting to Places API", e);
+	        return resultList;
+	    } finally {
+	        if (conn != null) {
+	            conn.disconnect();
+	        }
+	    }
+	
+	    try {
+	        // Create a JSON object hierarchy from the results
+	        JSONObject jsonObj = new JSONObject(jsonResults.toString());
+	        JSONArray predsJsonArray = jsonObj.getJSONArray("predictions");
+	
+	        // Extract the Place descriptions from the results
+	        resultList = new ArrayList<String>(predsJsonArray.length());
+	        for (int i = 0; i < predsJsonArray.length(); i++) {
+	            resultList.add(predsJsonArray.getJSONObject(i).getString("description"));
+	        }
+	    } catch (JSONException e) {
+	        Log.e(LOG_TAG, "Cannot process JSON results", e);
+	    }
+	
+	    return resultList;
+	}
+	
+	private class PlacesAutoCompleteAdapter extends ArrayAdapter<String> implements Filterable {
+	    private ArrayList<String> resultList;
+
+	    public PlacesAutoCompleteAdapter(Context context, int textViewResourceId) {
+	        super(context, textViewResourceId);
+	    }
+
+	    @Override
+	    public int getCount() {
+	        return resultList.size();
+	    }
+
+	    @Override
+	    public String getItem(int index) {
+	        return resultList.get(index);
+	    }
+
+	    @Override
+	    public Filter getFilter() {
+	        Filter filter = new Filter() {
+	            @Override
+	            protected FilterResults performFiltering(CharSequence constraint) {
+	                FilterResults filterResults = new FilterResults();
+	                if (constraint != null) {
+	                    // Retrieve the autocomplete results.
+	                    resultList = autocomplete(constraint.toString());
+
+	                    // Assign the data to the FilterResults
+	                    filterResults.values = resultList;
+	                    filterResults.count = resultList.size();
+	                }
+	                return filterResults;
+	            }
+
+	            @Override
+	            protected void publishResults(CharSequence constraint, FilterResults results) {
+	                if (results != null && results.count > 0) {
+	                    notifyDataSetChanged();
+	                }
+	                else {
+	                    notifyDataSetInvalidated();
+	                }
+	            }};
+	        return filter;
+	    }
+	}
+
 	
 	@SuppressWarnings("rawtypes")
 	private void setAdapterForACTV() {
 		//populateUsersList();
 		mAdapter = new ArrayAdapter(getActivity(), android.R.layout.simple_list_item_1, UserInfo.getUsersNamesAsString(MainActivity.getFriendsList()));
 		mACTextView.setAdapter(mAdapter);
-	}
-	
-	private void setAdapterForLocation() {
-		// TODO - probably should be executed on a different thread
-		Geocoder geoCoder =
-                new Geocoder(MainActivity.getContext(), Locale.getDefault());
-
-		List<Address> addresses;
-		try {
-			addresses = geoCoder.getFromLocationName(mACTextViewLocation.getText().toString(),5);
-			mAdapterLocation = new ArrayAdapter(getActivity(), android.R.layout.simple_list_item_1, addresses.toArray());
-			mACTextViewLocation.setAdapter(mAdapterLocation);
-			//for test
-			/*if (addresses.size() != 0)
-				Toast.makeText(getActivity(), addresses.size(), Toast.LENGTH_SHORT).show();
-			*/
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 	
 	@Override
@@ -120,7 +211,8 @@ public class SetMeetingFragment extends Fragment {
 		mACTextView = (AutoCompleteTextView) setMeetingView.findViewById(R.id.autoCompleteTextView1);	
 		mACTextViewLocation = (AutoCompleteTextView) setMeetingView.findViewById(R.id.autoCompleteTextView2);
 		mACTextView.setThreshold(1);
-		mACTextViewLocation.setThreshold(1);
+		mACTextViewLocation.setAdapter(new PlacesAutoCompleteAdapter(getActivity(), android.R.layout.simple_list_item_1));
+
 		
 		
 		// Remove keyboard after user selects an element		
@@ -143,8 +235,11 @@ public class SetMeetingFragment extends Fragment {
 		// Remove keyboard after user selects an element		
 		mACTextViewLocation.setOnItemClickListener(new OnItemClickListener() {
 				@Override
-				public void onItemClick(AdapterView<?> arg0, View arg1, int arg2, long arg3) {
-					hideKeyboard(arg1, mACTextViewLocation);
+				public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
+			        String str = (String) adapterView.getItemAtPosition(position);
+			        Toast.makeText(getActivity(), str, Toast.LENGTH_SHORT).show();
+
+					hideKeyboard(view, mACTextViewLocation);
 				}
 		});
 		
@@ -152,14 +247,12 @@ public class SetMeetingFragment extends Fragment {
 			
 			@Override
 			
-			//TODO
 			public boolean onTouch(View v, MotionEvent event) {
 				return false;
 			}
 		});
 		
 		setAdapterForACTV();
-		setAdapterForLocation();
 		
 		mAddAttendeeButton = (Button) setMeetingView.findViewById(R.id.button1);
 		mSendInvitationButton = (Button) setMeetingView.findViewById(R.id.button2);
@@ -188,7 +281,6 @@ public class SetMeetingFragment extends Fragment {
 			    	if (meetingList.contains(friendName.toString())) {
 			    		Toast.makeText(getActivity(), friendName.toString() + " is already marked to join the meeting!", Toast.LENGTH_SHORT).show();
 			    	} else {	
-			    		// TODO - Alternative for getting id: get id from local sql
 			    		meetingList.add(friendName.toString());
 			    		friendsInMeetingList.add(friend);
 			    		mACTextView.setText("");
@@ -217,10 +309,6 @@ public class SetMeetingFragment extends Fragment {
 			@Override
 			public void onClick(View v) {				
 				//TODO  Send Invitation through server
-				//TODO Wait for acceptance
-				//TODO progress bar till all accept
-				
-				//TODO check for address to be correct
 				
 				if (mACTextViewLocation.getText().toString().isEmpty()) {
 					Toast.makeText(getActivity(), "You must specify a location!", Toast.LENGTH_SHORT).show();
@@ -248,7 +336,7 @@ public class SetMeetingFragment extends Fragment {
 			public void onClick(View v) {					
 				getActivity().getActionBar().setSelectedNavigationItem(0);
 				// mark located attribute for all attendees
-				// TODO!! should it be marked in friendsList from MainActivity instead
+				// in order to start locating them on map
 				for (UserInfo friend : friendsInMeetingList) {
 					friend.locate();
 				}
@@ -273,7 +361,10 @@ public class SetMeetingFragment extends Fragment {
 				mSeeMeetingButton.setEnabled(false);
 				mCancelMeetingButton.setEnabled(false);
 				
-				//TODO remove friends and location from map
+				//remove friends and location from map
+				for (UserInfo friend : friendsInMeetingList) {
+					friend.locate();
+				}
 				
 			}
 		});
@@ -291,9 +382,6 @@ public class SetMeetingFragment extends Fragment {
         super.onPause();        
     }
     
-    
-    //TODO - save SetMeeting fragment's state to restore after moving to MapFragment
-    // currently not saving buttons enable states
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -346,13 +434,8 @@ public class SetMeetingFragment extends Fragment {
         protected void onPostExecute(Void response) {
             super.onPostExecute(response);
             if (this.fragmentWeakRef.get() != null) {
-            	//TODO: treat the result            
-            	/*if (!mLocateFriendButton.isEnabled()) {
-            		setAdapterForACTV();
-            		Toast.makeText(getActivity(), "Finished executing!", Toast.LENGTH_SHORT).show();
-            	} else {
-            		Toast.makeText(getActivity(), "Waiting!", Toast.LENGTH_SHORT).show();
-            	}*/
+            	//TODO          
+            	
             }
         }
         
